@@ -61,50 +61,57 @@ jobs:
         
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      run: |
+        # Create release body
+        cat > release_body.md << 'EOF'
+        ## 🚀 发票OCR系统 ${{ steps.get_version.outputs.version }}
+
+        ### 📋 更新内容
+        ${{ steps.changelog.outputs.changelog }}
+
+        ### 🐳 Docker镜像
+        ```bash
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
+        ```
+
+        ### 🚀 快速部署
+        ```bash
+        # 下载配置文件
+        wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/docker-compose.yml
+        wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/.env.production
+
+        # 配置环境变量
+        cp .env.production .env
+        # 编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS
+
+        # 启动服务
+        docker-compose up -d
+        ```
+
+        ### 📊 系统要求
+        - CPU: 2核心以上
+        - 内存: 4GB以上
+        - 存储: 10GB以上
+        - Docker: 20.10.0+
+        - Docker Compose: 1.29.0+
+
+        ### 🔒 安全提醒
+        - 请更新 `.env` 文件中的 `SECRET_KEY`
+        - 配置正确的 `CORS_ORIGINS` 域名
+        - 建议启用HTTPS和防火墙
+        EOF
+
+        # Create release using GitHub CLI
+        gh release create ${{ steps.get_version.outputs.version }} \
+          --title "Release ${{ steps.get_version.outputs.version }}" \
+          --notes-file release_body.md \
+          --target ${{ github.sha }}
+
+        # Get upload URL for compatibility
+        upload_url=$(gh api repos/${{ github.repository }}/releases/tags/${{ steps.get_version.outputs.version }} --jq '.upload_url')
+        echo "upload_url=$upload_url" >> $GITHUB_OUTPUT
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_version.outputs.version }}
-        release_name: Release ${{ steps.get_version.outputs.version }}
-        body: |
-          ## 🚀 发票OCR系统 ${{ steps.get_version.outputs.version }}
-          
-          ### 📋 更新内容
-          ${{ steps.changelog.outputs.changelog }}
-          
-          ### 🐳 Docker镜像
-          ```bash
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
-          ```
-          
-          ### 🚀 快速部署
-          ```bash
-          # 下载配置文件
-          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/docker-compose.yml
-          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/.env.production
-          
-          # 配置环境变量
-          cp .env.production .env
-          # 编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS
-          
-          # 启动服务
-          docker-compose up -d
-          ```
-          
-          ### 📊 系统要求
-          - CPU: 2核心以上
-          - 内存: 4GB以上
-          - 存储: 10GB以上
-          - Docker: 20.10.0+
-          - Docker Compose: 1.29.0+
-          
-          ### 🔒 安全提醒
-          - 请更新 `.env` 文件中的 `SECRET_KEY`
-          - 配置正确的 `CORS_ORIGINS` 域名
-          - 建议启用HTTPS和防火墙
-        draft: false
-        prerelease: false
 
   build-release:
     name: Build Release Assets
@@ -263,48 +270,19 @@ jobs:
         EOF
         
         # Create archive
-        tar -czf invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz -C release-package .
-        zip -r invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip release-package/
-        
+        tar -czf get_invoice_done-${{ needs.create-release.outputs.version }}.tar.gz -C release-package .
+        zip -r get_invoice_done-${{ needs.create-release.outputs.version }}.zip release-package/
+
     - name: Upload release assets
-      uses: actions/upload-release-asset@v1
+      run: |
+        # Upload all assets using GitHub CLI
+        gh release upload ${{ needs.create-release.outputs.version }} \
+          get_invoice_done-${{ needs.create-release.outputs.version }}.tar.gz \
+          get_invoice_done-${{ needs.create-release.outputs.version }}.zip \
+          docker-compose.yml \
+          .env.production
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_name: invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz
-        asset_content_type: application/gzip
-        
-    - name: Upload release assets (ZIP)
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip
-        asset_name: invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip
-        asset_content_type: application/zip
-        
-    - name: Upload docker-compose.yml
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./docker-compose.yml
-        asset_name: docker-compose.yml
-        asset_content_type: text/yaml
-        
-    - name: Upload .env.production
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./.env.production
-        asset_name: .env.production
-        asset_content_type: text/plain
 
   notify-release:
     name: Notify Release
