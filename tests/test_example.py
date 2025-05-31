@@ -216,11 +216,11 @@ class TestPerformance:
         """Test database performance with multiple records"""
         conn = sqlite3.connect(test_db)
         cursor = conn.cursor()
-        
-        # Insert multiple records
+
+        # Insert multiple records with all required fields
         import time
         start_time = time.time()
-        
+
         for i in range(100):
             cursor.execute('''
                 INSERT INTO invoices (file_path, file_name, file_type, total_amount)
