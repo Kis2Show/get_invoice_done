@@ -1,63 +1,132 @@
-# 发票识别管理系统
+# 🧾 发票OCR识别管理系统
 
-基于PaddleOCR的中国大陆发票识别和管理系统，支持图片和PDF格式的发票自动识别、信息提取、排序、去重和筛选功能。
+[![CI/CD](https://github.com/Kis2Show/get_invoice_done/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/Kis2Show/get_invoice_done/actions)
+[![Docker](https://github.com/Kis2Show/get_invoice_done/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)](https://github.com/Kis2Show/get_invoice_done/actions)
+[![Docker Hub](https://img.shields.io/docker/pulls/kis2show/get_invoice_done)](https://hub.docker.com/r/kis2show/get_invoice_done)
+[![License](https://img.shields.io/github/license/Kis2Show/get_invoice_done)](LICENSE)
 
-## 功能特性
+基于FastAPI和EasyOCR的现代化发票识别管理系统，支持PDF和图片格式的发票自动识别、信息提取、数据管理和Web界面操作。
 
-- 🔍 **智能识别**: 使用PaddleOCR引擎，支持中文发票的高精度识别
-- 📄 **多格式支持**: 支持图片(JPG, PNG, BMP, TIFF)和PDF格式的发票
-- 🏷️ **信息提取**: 自动提取发票号码、金额、日期、公司信息等关键字段
-- 🔄 **数据管理**: 支持排序、去重、筛选等数据处理功能
-- 🌐 **Web界面**: 现代化的Web用户界面，支持响应式设计
-- 🐳 **容器化**: 支持Docker部署，跨平台运行
-- 📊 **统计分析**: 提供发票统计和汇总信息
+**作者**: [Kis2Show](https://github.com/Kis2Show)
+**仓库**: https://github.com/Kis2Show/get_invoice_done
+**Docker镜像**: https://hub.docker.com/r/kis2show/get_invoice_done
 
-## 技术栈
+## ✨ 功能特性
 
-- **后端**: Python + FastAPI
-- **OCR引擎**: PaddleOCR
-- **PDF处理**: PyMuPDF
-- **数据库**: SQLite
-- **前端**: HTML + JavaScript + Bootstrap
+### 🔍 智能OCR识别
+- **高精度识别**: 基于EasyOCR引擎，支持中文发票的高精度识别
+- **多格式支持**: 支持PDF、JPG、PNG、BMP、TIFF等格式
+- **智能布局分析**: 自动识别发票布局和字段位置
+- **错误处理**: 智能处理识别失败的发票文件
+
+### 📊 数据管理
+- **信息提取**: 自动提取发票号码、金额、日期、公司信息等关键字段
+- **数据验证**: 智能验证提取的数据准确性
+- **去重功能**: 基于发票号码和代码自动去除重复记录
+- **筛选排序**: 支持多维度筛选和排序功能
+
+### 🌐 现代化界面
+- **响应式设计**: 支持桌面和移动设备
+- **实时反馈**: 处理进度实时显示
+- **直观操作**: 简洁易用的用户界面
+- **数据可视化**: 统计图表和汇总信息
+
+### 🐳 DevOps集成
+- **容器化部署**: Docker多架构支持 (amd64/arm64)
+- **CI/CD流水线**: GitHub Actions自动构建和部署
+- **自动化测试**: 完整的测试覆盖和质量检查
+- **安全扫描**: 自动安全漏洞检测
+
+## 🛠️ 技术栈
+
+### 后端技术
+- **框架**: FastAPI (高性能异步Web框架)
+- **OCR引擎**: EasyOCR (支持多语言OCR识别)
+- **PDF处理**: PyMuPDF (高效PDF文本提取)
+- **数据库**: SQLite (轻量级关系数据库)
+- **异步处理**: asyncio (异步任务处理)
+
+### 前端技术
+- **界面**: HTML5 + CSS3 + JavaScript
+- **框架**: Bootstrap 5 (响应式UI框架)
+- **图标**: Font Awesome (矢量图标库)
+- **交互**: 原生JavaScript (无重型框架依赖)
+
+### DevOps工具
 - **容器化**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **代码质量**: pytest + coverage
+- **安全扫描**: Trivy + Bandit
+- **多架构**: linux/amd64, linux/arm64
 
-## 快速开始
+## 🚀 快速开始
 
-### 使用Docker Compose (推荐)
+### 方法1: 使用Docker镜像 (最简单)
 
-1. 克隆项目并进入目录:
 ```bash
-git clone <repository-url>
-cd get_invoice_done
+# 拉取最新镜像
+docker pull kis2show/get_invoice_done:latest
+
+# 运行容器
+docker run -d \
+  -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/invoices:/app/invoices \
+  --name invoice-ocr \
+  kis2show/get_invoice_done:latest
+
+# 访问Web界面
+open http://localhost:8000
 ```
 
-2. 确保发票文件已放置在正确位置:
+### 方法2: 使用Docker Compose (推荐)
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/Kis2Show/get_invoice_done.git
+cd get_invoice_done
+
+# 2. 配置环境变量
+cp .env.production .env
+# 编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS
+
+# 3. 启动服务
+docker-compose up -d
+
+# 4. 访问Web界面
+open http://localhost:8000
+```
+
+### 方法3: 本地开发
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/Kis2Show/get_invoice_done.git
+cd get_invoice_done
+
+# 2. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# 或 venv\Scripts\activate  # Windows
+
+# 3. 安装依赖
+pip install -r requirements.txt
+
+# 4. 创建必要目录
+mkdir -p data logs invoices/pdf invoices/imge invoices/unrecognized
+
+# 5. 启动开发服务器
+python run.py
+```
+
+### 📁 目录准备
+
+确保发票文件已放置在正确位置：
 ```
 invoices/
-├── imge/     # 图片格式发票
-└── pdf/      # PDF格式发票
-```
-
-3. 启动服务:
-```bash
-docker-compose up -d
-```
-
-4. 访问Web界面:
-```
-http://localhost:8000
-```
-
-### 本地开发
-
-1. 安装Python依赖:
-```bash
-pip install -r requirements.txt
-```
-
-2. 启动开发服务器:
-```bash
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+├── pdf/              # PDF格式发票
+├── imge/             # 图片格式发票 (jpg, png, bmp, tiff)
+└── unrecognized/     # 识别失败的文件 (自动创建)
 ```
 
 ## 使用说明
@@ -85,78 +154,205 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - 去重功能: 基于发票号码和发票代码自动去除重复记录
 - 统计信息: 实时显示发票数量、金额汇总等统计数据
 
-## API文档
+## 📚 API文档
 
-启动服务后，访问以下地址查看API文档:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+启动服务后，访问以下地址查看完整的API文档：
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **健康检查**: http://localhost:8000/health
 
-### 主要API端点
+### 🔗 主要API端点
 
-- `POST /api/invoices/process` - 处理所有发票文件
-- `GET /api/invoices/` - 获取发票列表(支持筛选)
-- `GET /api/invoices/{id}` - 获取单个发票详情
-- `DELETE /api/invoices/{id}` - 删除发票
-- `POST /api/invoices/deduplicate` - 去重操作
-- `GET /api/invoices/stats/summary` - 获取统计信息
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| `POST` | `/api/invoices/process` | 处理所有发票文件 |
+| `GET` | `/api/invoices/` | 获取发票列表(支持筛选) |
+| `GET` | `/api/invoices/{id}` | 获取单个发票详情 |
+| `DELETE` | `/api/invoices/{id}` | 删除发票 |
+| `POST` | `/api/invoices/deduplicate` | 去重操作 |
+| `GET` | `/api/invoices/stats/summary` | 获取统计信息 |
+| `GET` | `/health` | 健康检查端点 |
 
-## 配置说明
+### 📝 API使用示例
+
+```bash
+# 处理发票
+curl -X POST "http://localhost:8000/api/invoices/process"
+
+# 获取发票列表
+curl "http://localhost:8000/api/invoices/?limit=10&offset=0"
+
+# 获取统计信息
+curl "http://localhost:8000/api/invoices/stats/summary"
+
+# 健康检查
+curl "http://localhost:8000/health"
+```
+
+## ⚙️ 配置说明
 
 ### 环境变量
 
-- `DATABASE_URL`: 数据库连接字符串 (默认: sqlite:///./invoices.db)
-- `PYTHONPATH`: Python路径 (默认: /app)
+| 变量名 | 描述 | 默认值 |
+|--------|------|--------|
+| `DEBUG` | 调试模式 | `false` |
+| `LOG_LEVEL` | 日志级别 | `INFO` |
+| `DATABASE_URL` | 数据库连接字符串 | `sqlite:///./data/invoices.db` |
+| `SECRET_KEY` | 应用密钥 | `your-secret-key-here` |
+| `CORS_ORIGINS` | 允许的跨域源 | `*` |
+| `MAX_FILE_SIZE` | 最大文件大小 | `10485760` (10MB) |
+| `OCR_CONFIDENCE_THRESHOLD` | OCR置信度阈值 | `0.7` |
+| `WORKERS` | 工作进程数 | `4` |
 
-### 目录结构
+### 生产环境配置
+
+```bash
+# 复制生产环境配置模板
+cp .env.production .env
+
+# 编辑配置文件
+nano .env
+```
+
+**重要**: 生产环境请务必修改以下配置：
+- `SECRET_KEY`: 生成强密钥
+- `CORS_ORIGINS`: 设置允许的域名
+- `DEBUG`: 设置为 `false`
+
+### 📁 项目目录结构
 
 ```
 get_invoice_done/
-├── app/                    # 应用代码
-│   ├── api/               # API路由
-│   ├── models/            # 数据模型
-│   ├── services/          # 业务逻辑
-│   ├── static/            # 静态文件
-│   ├── database.py        # 数据库配置
-│   └── main.py           # 主应用
-├── invoices/              # 发票文件目录
-│   ├── imge/             # 图片发票
-│   └── pdf/              # PDF发票
-├── requirements.txt       # Python依赖
-├── Dockerfile            # Docker配置
-├── docker-compose.yml    # Docker Compose配置
-└── README.md             # 项目说明
+├── 📁 .github/workflows/      # GitHub Actions CI/CD
+│   ├── ci-cd.yml             # 完整CI/CD流水线
+│   ├── docker-build.yml      # Docker构建工作流
+│   ├── release.yml           # 发布管理工作流
+│   └── dependency-update.yml # 依赖更新工作流
+├── 📁 app/                   # FastAPI应用代码
+│   ├── 📁 api/               # API路由模块
+│   ├── 📁 models/            # 数据模型定义
+│   ├── 📁 services/          # 业务逻辑服务
+│   ├── 📁 static/            # 静态文件(HTML/CSS/JS)
+│   ├── database.py           # 数据库配置
+│   └── main.py              # FastAPI主应用
+├── 📁 data/                  # 数据存储目录
+├── 📁 invoices/              # 发票文件目录
+│   ├── 📁 pdf/               # PDF格式发票
+│   ├── 📁 imge/              # 图片格式发票
+│   └── 📁 unrecognized/      # 识别失败文件
+├── 📁 logs/                  # 应用日志目录
+├── 📁 tests/                 # 测试代码
+├── 🐳 Dockerfile             # Docker镜像定义
+├── 🐳 docker-compose.yml     # Docker编排配置
+├── ⚙️ .env.production        # 生产环境配置
+├── ⚙️ .env.example           # 环境变量示例
+├── 🚀 deploy.sh/.bat         # 部署脚本
+├── 📦 requirements.txt       # Python依赖
+├── 🐍 run.py                 # 应用启动脚本
+└── 📚 README.md              # 项目说明文档
 ```
 
-## 注意事项
+## ⚠️ 注意事项
 
+### 📋 使用要求
 1. **文件格式**: 确保发票文件清晰可读，避免模糊或损坏的文件
 2. **中文支持**: 系统专门针对中国大陆发票格式进行优化
-3. **性能**: 首次运行时PaddleOCR会下载模型文件，请确保网络连接正常
-4. **存储**: 数据库文件存储在`./data`目录下，请定期备份
+3. **网络连接**: 首次运行时EasyOCR会下载模型文件，请确保网络连接正常
+4. **存储空间**: 数据库和日志文件存储在`./data`和`./logs`目录下，请定期备份
 
-## 故障排除
+### 🔒 安全建议
+1. **生产部署**: 务必修改默认的SECRET_KEY
+2. **CORS配置**: 生产环境请设置具体的允许域名
+3. **文件权限**: 确保发票文件目录有适当的读写权限
+4. **定期更新**: 关注依赖包安全更新
 
-### 常见问题
+## 🔧 故障排除
 
-1. **OCR识别精度低**:
-   - 确保发票图片清晰度足够
-   - 检查文件是否损坏
-   - 尝试重新扫描或拍摄发票
+### 常见问题及解决方案
 
-2. **Docker启动失败**:
-   - 检查端口8000是否被占用
-   - 确保Docker和Docker Compose已正确安装
-   - 查看容器日志: `docker-compose logs`
+#### 1. OCR识别精度低
+```bash
+# 检查文件质量
+- 确保发票图片清晰度足够 (建议300DPI以上)
+- 检查文件是否损坏或格式不支持
+- 尝试重新扫描或拍摄发票
 
-3. **文件无法识别**:
-   - 确认文件格式是否支持
-   - 检查文件权限
-   - 查看应用日志获取详细错误信息
+# 调整OCR参数
+- 修改 OCR_CONFIDENCE_THRESHOLD 环境变量
+- 检查发票是否为标准格式
+```
 
-## 许可证
+#### 2. Docker启动失败
+```bash
+# 检查端口占用
+netstat -tulpn | grep :8000
 
-本项目采用MIT许可证，详见LICENSE文件。
+# 查看容器日志
+docker-compose logs -f
 
-## 贡献
+# 重新构建镜像
+docker-compose build --no-cache
+```
 
-欢迎提交Issue和Pull Request来改进项目。
+#### 3. 文件无法识别
+```bash
+# 检查文件权限
+ls -la invoices/
+
+# 查看应用日志
+docker-compose logs app
+
+# 检查支持的文件格式
+curl http://localhost:8000/health
+```
+
+#### 4. 数据库问题
+```bash
+# 检查数据库文件
+ls -la data/
+
+# 重置数据库 (谨慎操作)
+rm data/invoices.db
+docker-compose restart
+```
+
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！
+
+### 如何贡献
+1. **Fork** 本仓库
+2. **创建** 特性分支 (`git checkout -b feature/AmazingFeature`)
+3. **提交** 更改 (`git commit -m 'Add some AmazingFeature'`)
+4. **推送** 到分支 (`git push origin feature/AmazingFeature`)
+5. **创建** Pull Request
+
+### 贡献类型
+- 🐛 Bug修复
+- ✨ 新功能开发
+- 📚 文档改进
+- 🧪 测试用例
+- 🎨 UI/UX改进
+- 🔧 性能优化
+
+## 📄 许可证
+
+本项目采用 [MIT许可证](LICENSE)。
+
+## 👨‍💻 作者
+
+**Kis2Show**
+- GitHub: [@Kis2Show](https://github.com/Kis2Show)
+- 项目链接: [https://github.com/Kis2Show/get_invoice_done](https://github.com/Kis2Show/get_invoice_done)
+
+## 🙏 致谢
+
+感谢以下开源项目：
+- [FastAPI](https://fastapi.tiangolo.com/) - 现代化的Python Web框架
+- [EasyOCR](https://github.com/JaidedAI/EasyOCR) - 易用的OCR库
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - PDF处理库
+- [Bootstrap](https://getbootstrap.com/) - 前端UI框架
+
+---
+
+**⭐ 如果这个项目对您有帮助，请给个Star支持一下！**

@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: invoice-ocr-system
+  IMAGE_NAME: get_invoice_done
 
 jobs:
   build:

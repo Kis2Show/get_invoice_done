@@ -11,8 +11,8 @@ LABEL org.opencontainers.image.created=${BUILDTIME}
 LABEL org.opencontainers.image.version=${VERSION}
 LABEL org.opencontainers.image.revision=${REVISION}
 LABEL org.opencontainers.image.title="Invoice OCR System"
-LABEL org.opencontainers.image.description="基于OCR的发票识别和管理系统"
-LABEL org.opencontainers.image.source="https://github.com/your-username/invoice-ocr-system"
+LABEL org.opencontainers.image.description="基于FastAPI和EasyOCR的发票识别管理系统"
+LABEL org.opencontainers.image.source="https://github.com/Kis2Show/get_invoice_done"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # 安装构建依赖
@@ -57,8 +57,8 @@ LABEL org.opencontainers.image.created=${BUILDTIME}
 LABEL org.opencontainers.image.version=${VERSION}
 LABEL org.opencontainers.image.revision=${REVISION}
 LABEL org.opencontainers.image.title="Invoice OCR System"
-LABEL org.opencontainers.image.description="基于OCR的发票识别和管理系统"
-LABEL org.opencontainers.image.source="https://github.com/your-username/invoice-ocr-system"
+LABEL org.opencontainers.image.description="基于FastAPI和EasyOCR的发票识别管理系统"
+LABEL org.opencontainers.image.source="https://github.com/Kis2Show/get_invoice_done"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # 创建非root用户
