@@ -121,8 +121,8 @@ class TestDatabase:
         cursor.execute('''
             INSERT INTO invoices (
                 file_name, file_path, file_type, invoice_number,
-                seller_name, buyer_name, total_amount, confidence
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                seller_name, buyer_name, total_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             sample_invoice_data['file_name'],
             sample_invoice_data['file_path'],
@@ -130,8 +130,7 @@ class TestDatabase:
             sample_invoice_data['invoice_number'],
             sample_invoice_data['seller_name'],
             sample_invoice_data['buyer_name'],
-            sample_invoice_data['total_amount'],
-            sample_invoice_data['confidence']
+            sample_invoice_data['total_amount']
         ))
         
         conn.commit()
@@ -224,9 +223,9 @@ class TestPerformance:
         
         for i in range(100):
             cursor.execute('''
-                INSERT INTO invoices (file_path, file_name, total_amount)
-                VALUES (?, ?, ?)
-            ''', (f'/test/path/test_invoice_{i}.pdf', f'test_invoice_{i}.pdf', 100.0 + i))
+                INSERT INTO invoices (file_path, file_name, file_type, total_amount)
+                VALUES (?, ?, ?, ?)
+            ''', (f'/test/path/test_invoice_{i}.pdf', f'test_invoice_{i}.pdf', 'pdf', 100.0 + i))
         
         conn.commit()
         end_time = time.time()

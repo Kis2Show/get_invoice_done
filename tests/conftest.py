@@ -111,8 +111,7 @@ def sample_invoice_data():
         'tax_amount': 130.00,
         'pre_tax_amount': 870.00,
         'items': '测试商品',
-        'raw_text': '测试原始文本内容',
-        'confidence': 0.95
+        'raw_text': '测试原始文本内容'
     }
 
 @pytest.fixture(scope="function")
