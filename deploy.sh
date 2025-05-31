@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# 发票OCR系统Docker部署脚本
-# 使用方法: ./deploy.sh [start|stop|restart|build|logs|status]
+# 🚀 发票OCR系统Docker部署脚本
+# 镜像: kis2show/get_invoice_done:latest | 用户权限: 100:100
+# 使用方法: ./deploy.sh [start|stop|restart|pull|logs|status]
 
 set -e
 
@@ -61,32 +62,54 @@ create_directories() {
     log_success "目录创建完成"
 }
 
-# 构建镜像
-build_image() {
-    log_info "构建Docker镜像..."
-    
-    docker-compose build --no-cache
-    
-    log_success "镜像构建完成"
+# 拉取最新镜像
+pull_image() {
+    log_info "拉取最新镜像: kis2show/get_invoice_done:latest..."
+
+    docker pull kis2show/get_invoice_done:latest
+
+    log_success "镜像拉取完成"
+}
+
+# 设置目录权限
+setup_permissions() {
+    log_info "设置目录权限 (用户ID: 100)..."
+
+    # 检查是否为root用户或有sudo权限
+    if [[ $EUID -eq 0 ]]; then
+        chown -R 100:100 data invoices logs 2>/dev/null || true
+        chmod -R 755 data invoices logs 2>/dev/null || true
+        log_success "权限设置完成 (root用户)"
+    elif sudo -n true 2>/dev/null; then
+        sudo chown -R 100:100 data invoices logs 2>/dev/null || true
+        sudo chmod -R 755 data invoices logs 2>/dev/null || true
+        log_success "权限设置完成 (sudo)"
+    else
+        log_warning "无法自动设置权限，请手动执行:"
+        echo "  sudo chown -R 100:100 data invoices logs"
+        echo "  sudo chmod -R 755 data invoices logs"
+    fi
 }
 
 # 启动服务
 start_service() {
     log_info "启动发票OCR系统..."
-    
+
     create_directories
-    
+    setup_permissions
+
     # 启动主服务
     docker-compose up -d invoice-ocr
-    
+
     log_success "服务启动完成"
-    log_info "Web界面地址: http://localhost:8000"
-    log_info "健康检查: http://localhost:8000/health"
-    
+    log_info "🌐 Web界面地址: http://localhost:8000"
+    log_info "📚 API文档: http://localhost:8000/docs"
+    log_info "💚 健康检查: http://localhost:8000/health"
+
     # 等待服务启动
     log_info "等待服务启动..."
     sleep 10
-    
+
     # 检查服务状态
     check_health
 }
@@ -228,7 +251,7 @@ show_help() {
     echo "  start-admin 启动服务（包含管理界面）"
     echo "  stop        停止服务"
     echo "  restart     重启服务"
-    echo "  build       构建镜像"
+    echo "  pull        拉取最新镜像"
     echo "  logs        查看日志"
     echo "  status      检查状态"
     echo "  cleanup     清理资源"
@@ -261,8 +284,8 @@ main() {
         "restart")
             restart_service
             ;;
-        "build")
-            build_image
+        "pull")
+            pull_image
             ;;
         "logs")
             show_logs

@@ -7,10 +7,6 @@
 
 基于FastAPI和EasyOCR的现代化发票识别管理系统，支持PDF和图片格式的发票自动识别、信息提取、数据管理和Web界面操作。
 
-**作者**: [Kis2Show](https://github.com/Kis2Show)
-**仓库**: https://github.com/Kis2Show/get_invoice_done
-**Docker镜像**: https://hub.docker.com/r/kis2show/get_invoice_done
-
 ## ✨ 功能特性
 
 ### 🔍 智能OCR识别

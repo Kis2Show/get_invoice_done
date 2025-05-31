@@ -2,21 +2,24 @@ version: '3.8'
 
 services:
   invoice-ocr:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: kis2show/get_invoice_done:latest
     container_name: invoice-ocr-system
+    user: "100:100"
     ports:
       - "8000:8000"
     volumes:
-      - ./invoices:/app/invoices
-      - ./data:/app/data
-      - invoice_logs:/app/logs
+      - ./invoices:/app/invoices:rw
+      - ./data:/app/data:rw
+      - invoice_logs:/app/logs:rw
     environment:
       - DATABASE_URL=sqlite:///./data/invoices.db
       - PYTHONPATH=/app
       - INVOICE_DIR=/app/invoices
       - LOG_LEVEL=INFO
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - OCR_CONFIDENCE_THRESHOLD=${OCR_CONFIDENCE_THRESHOLD:-0.6}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -26,24 +29,74 @@ services:
       start_period: 40s
     networks:
       - invoice-network
+    depends_on:
+      - setup-permissions
+
+  # 权限设置服务
+  setup-permissions:
+    image: alpine:latest
+    container_name: invoice-permissions-setup
+    user: "0:0"  # root用户用于设置权限
+    volumes:
+      - ./invoices:/setup/invoices:rw
+      - ./data:/setup/data:rw
+    command: >
+      sh -c "
+        echo 'Setting up directory permissions for user 100...' &&
+        mkdir -p /setup/invoices/pdf /setup/invoices/imge /setup/invoices/unrecognized &&
+        mkdir -p /setup/data &&
+        chown -R 100:100 /setup/invoices /setup/data &&
+        chmod -R 755 /setup/invoices /setup/data &&
+        echo 'Permissions setup completed successfully!'
+      "
+    networks:
+      - invoice-network
 
   # 可选：添加数据库管理界面
   adminer:
-    image: adminer
+    image: adminer:latest
     container_name: invoice-db-admin
+    user: "100:100"
     ports:
       - "8080:8080"
     environment:
       - ADMINER_DEFAULT_SERVER=invoice-ocr
+      - ADMINER_DESIGN=pepa-linha
     networks:
       - invoice-network
     profiles:
       - admin
+    depends_on:
+      - invoice-ocr
+
+  # 可选：Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: invoice-nginx
+    user: "100:100"
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - invoice-network
+    profiles:
+      - proxy
+    depends_on:
+      - invoice-ocr
 
 volumes:
   invoice_logs:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
 
 networks:
   invoice-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: invoice-br0
