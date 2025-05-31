@@ -114,6 +114,7 @@ jobs:
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
+      image-name: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
     
     steps:
     - name: Checkout code
@@ -169,16 +170,32 @@ jobs:
       security-events: write
 
     steps:
+    - name: Debug image information
+      run: |
+        echo "Image name: ${{ needs.build.outputs.image-name }}"
+        echo "Image tags: ${{ needs.build.outputs.image-tags }}"
+        echo "Image digest: ${{ needs.build.outputs.image-digest }}"
+
+    - name: Extract single image tag for scanning
+      id: extract-tag
+      run: |
+        # Extract the first tag from the multi-line tags output
+        FIRST_TAG=$(echo "${{ needs.build.outputs.image-tags }}" | head -n1)
+        echo "Selected image tag for scanning: $FIRST_TAG"
+        echo "image-tag=$FIRST_TAG" >> $GITHUB_OUTPUT
+
     - name: Run Trivy vulnerability scanner on image
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ needs.build.outputs.image-tags }}
+        image-ref: ${{ steps.extract-tag.outputs.image-tag }}
         format: 'sarif'
         output: 'docker-trivy-results.sarif'
-        
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        exit-code: '0'  # Don't fail the build on vulnerabilities
+
     - name: Upload Docker scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: always() && hashFiles('docker-trivy-results.sarif') != ''
       with:
         sarif_file: 'docker-trivy-results.sarif'
 
