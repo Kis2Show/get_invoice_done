@@ -1,0 +1,89 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install pip-tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-tools
+        
+    - name: Update requirements
+      run: |
+        # Backup current requirements
+        cp requirements.txt requirements.txt.backup
+        
+        # Update dependencies
+        pip-compile --upgrade requirements.in || pip-compile --upgrade --generate-hashes requirements.txt
+        
+    - name: Check for security vulnerabilities
+      run: |
+        pip install safety
+        safety check -r requirements.txt --json > safety-report.json || true
+        
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update dependencies'
+        title: '🔄 Automated Dependency Update'
+        body: |
+          ## 🔄 自动依赖更新
+          
+          此PR由GitHub Actions自动创建，用于更新项目依赖包到最新版本。
+          
+          ### 📦 更新内容
+          - 更新了 `requirements.txt` 中的依赖包版本
+          - 运行了安全漏洞检查
+          
+          ### 🔍 检查项目
+          - [ ] 查看依赖包版本变更
+          - [ ] 运行测试确保兼容性
+          - [ ] 检查安全漏洞报告
+          - [ ] 验证应用功能正常
+          
+          ### 🚀 测试建议
+          ```bash
+          # 本地测试
+          pip install -r requirements.txt
+          python -m pytest tests/
+          
+          # Docker测试
+          docker-compose build
+          docker-compose up -d
+          curl http://localhost:8000/health
+          ```
+          
+          ### 📊 安全检查
+          安全漏洞检查报告已生成，请查看是否有需要关注的安全问题。
+          
+          ---
+          *此PR由 GitHub Actions 自动创建*
+        branch: dependency-update
+        delete-branch: true
+        
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-report
+        path: safety-report.json

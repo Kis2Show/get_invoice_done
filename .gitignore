@@ -1,0 +1,455 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Test outputs and reports
+test-results/
+test_results/
+test-output/
+test_output/
+tests/output/
+tests/reports/
+junit.xml
+test-report.xml
+test-report.html
+pytest-report.html
+allure-results/
+allure-report/
+
+# Test databases and data
+test.db
+test_*.db
+*_test.db
+test.sqlite*
+test_*.sqlite*
+*_test.sqlite*
+
+# Test logs
+test.log
+test_*.log
+*_test.log
+tests/*.log
+
+# Test screenshots and artifacts
+screenshots/
+test-screenshots/
+test_screenshots/
+test-artifacts/
+test_artifacts/
+
+# Performance test results
+locustfile.py
+.locust_history/
+performance_results/
+load_test_results/
+
+# Selenium and browser testing
+geckodriver.log
+chromedriver.log
+selenium-debug.log
+webdriver/
+drivers/
+
+# Mock data and fixtures
+mock_data/
+test_data/
+fixtures/
+test_fixtures/
+sample_data/
+
+# Test configuration
+pytest.ini.local
+tox.ini.local
+.testmondata
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
+#  project, it is recommended to include the following files in version control:
+#  - .idea/modules.xml
+#  - .idea/*.iml
+#  - .idea/misc.xml
+#  - .idea/vcs.xml
+.idea/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Windows
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Project specific files
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+invoices.db*
+
+# Data directories
+data/
+backup/
+backup_*/
+
+# Log files
+*.log
+logs/
+app.log
+error.log
+access.log
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Invoice files (sensitive data)
+invoices/pdf/*.pdf
+invoices/imge/*.jpg
+invoices/imge/*.jpeg
+invoices/imge/*.png
+invoices/imge/*.gif
+invoices/imge/*.bmp
+invoices/unrecognized/*
+
+# Keep directory structure but ignore contents
+!invoices/pdf/.gitkeep
+!invoices/imge/.gitkeep
+!invoices/unrecognized/.gitkeep
+!data/.gitkeep
+!logs/.gitkeep
+
+# Configuration files with sensitive data
+config.ini
+.env.local
+.env.production
+secrets.json
+
+# Docker
+.docker/
+
+# Analysis and debug scripts (keep in repo but ignore outputs)
+*_output.txt
+*_result.json
+*_analysis.csv
+
+# Test outputs
+test_results/
+coverage_reports/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Model files (if any)
+*.pkl
+*.joblib
+*.h5
+*.pb
+
+# OCR cache
+.easyocr/
+
+# Backup files
+*.bak
+*.backup
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.p12
+
+# Local development
+local_config.py
+dev_settings.py
+
+# Analysis and management scripts
+analyze_*.py
+debug_*.py
+check_*.py
+fix_*.py
+verify_*.py
+cleanup_*.py
+improve_*.py
+manage_*.py
+detailed_*.py
+
+# ===== 生产模式忽略规则 =====
+# Production Mode Ignore Rules
+
+# 开发和调试脚本 (Development and Debug Scripts)
+analyze_*.py
+debug_*.py
+check_*.py
+fix_*.py
+verify_*.py
+cleanup_*.py
+improve_*.py
+manage_*.py
+detailed_*.py
+production_*.py
+migration_*.py
+setup_*.py
+
+# 测试和验证产物 (Test and Validation Artifacts)
+test-results/
+test_results/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+test-report.*
+pytest-report.*
+allure-results/
+allure-report/
+.pytest_cache/
+.tox/
+.hypothesis/
+
+# 测试数据库和日志 (Test Databases and Logs)
+test_*.db
+*_test.db
+test.sqlite*
+test_*.log
+*_test.log
+
+# 开发文档和报告 (Development Documentation and Reports)
+*_GUIDE.md
+*_COMPLETION_REPORT.md
+TESTING_*.md
+DOCKER_*.md
+IGNORE_*.md
+INIT_*.md
+*_verification_report.json
+*_report.json
+deployment_report.json
+
+# 临时和备份文件 (Temporary and Backup Files)
+*.tmp
+*.temp
+temp/
+tmp/
+backup_*/
+*_backup_*/
+*.bak
+*.backup
+
+# 开发工具配置 (Development Tool Configurations)
+.vscode/settings.json
+.idea/workspace.xml
+*.sublime-workspace
+
+# 性能分析和调试 (Performance Analysis and Debugging)
+*.prof
+*.pstats
+profile_*.txt
+memory_*.txt
+
+# 开发环境特定文件 (Development Environment Specific)
+.env.development
+.env.local
+.env.debug
+local_*.py
+dev_*.py
+debug_*.py
+
+# CI/CD开发文件 (CI/CD Development Files)
+.github/workflows/dev_*.yml
+.gitlab-ci-dev.yml
+docker-compose.dev.yml
+docker-compose.debug.yml
+
+# 数据分析和统计 (Data Analysis and Statistics)
+analysis_*.csv
+stats_*.json
+metrics_*.txt
+benchmark_*.json

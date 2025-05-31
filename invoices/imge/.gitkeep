@@ -1,0 +1,3 @@
+# This file ensures the image invoices directory is tracked by Git
+# Place your image invoice files (JPG, PNG, etc.) here for processing
+# Actual image files are ignored by .gitignore for privacy and security

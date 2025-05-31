@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "2025-05-31T19:41:18.089902",
+    "original_path": "invoices\\amount_error_invoice.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\amount_error_invoice.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 244
+  },
+  {
+    "timestamp": "2025-05-31T19:41:18.093913",
+    "original_path": "invoices\\good_fuel_invoice.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\good_fuel_invoice.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 753
+  },
+  {
+    "timestamp": "2025-05-31T19:41:18.097912",
+    "original_path": "invoices\\good_invoice_1.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\good_invoice_1.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 636
+  },
+  {
+    "timestamp": "2025-05-31T19:41:18.099912",
+    "original_path": "invoices\\poor_quality_1.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\poor_quality_1.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 113
+  },
+  {
+    "timestamp": "2025-05-31T19:41:18.101914",
+    "original_path": "invoices\\tax_error_invoice.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\tax_error_invoice.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 253
+  },
+  {
+    "timestamp": "2025-05-31T19:41:18.104912",
+    "original_path": "invoices\\unreadable_file.txt",
+    "new_path": "invoices\\unrecognized\\low_confidence\\unreadable_file.txt",
+    "error_type": "low_confidence",
+    "error_reason": "无法提取文本内容",
+    "confidence_score": 0.0,
+    "invoice_info": {},
+    "file_size": 149
+  }
+]

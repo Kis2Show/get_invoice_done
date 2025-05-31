@@ -1,0 +1,3 @@
+# This file ensures the unrecognized invoices directory is tracked by Git
+# Files that cannot be processed will be moved here for manual review
+# Actual unrecognized files are ignored by .gitignore

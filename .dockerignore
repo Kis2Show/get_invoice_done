@@ -1,0 +1,345 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Test files and directories
+test_*.py
+*_test.py
+tests/
+test/
+__tests__/
+spec/
+specs/
+
+# Test outputs and reports
+test-results/
+test_results/
+test-output/
+test_output/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+junit.xml
+test-report.*
+pytest-report.*
+allure-results/
+allure-report/
+
+# Test databases and data
+test.db
+test_*.db
+*_test.db
+test.sqlite*
+test_*.sqlite*
+*_test.sqlite*
+
+# Test logs and artifacts
+test.log
+test_*.log
+*_test.log
+screenshots/
+test-screenshots/
+test_screenshots/
+test-artifacts/
+test_artifacts/
+
+# Test configuration
+pytest.ini
+pytest.ini.local
+tox.ini
+tox.ini.local
+.testmondata
+conftest.py
+
+# Performance and load testing
+locustfile.py
+.locust_history/
+performance_results/
+load_test_results/
+
+# Browser testing
+geckodriver.log
+chromedriver.log
+selenium-debug.log
+webdriver/
+drivers/
+
+# Mock and fixture data
+mock_data/
+test_data/
+fixtures/
+test_fixtures/
+sample_data/
+
+# Testing frameworks cache
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.cache
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Data files (will be mounted as volumes)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Analysis and debug scripts
+analyze_*.py
+debug_*.py
+check_*.py
+fix_*.py
+test_*.py
+verify_*.py
+reprocess_*.py
+comprehensive_*.py
+final_*.py
+quick_*.py
+simple_*.py
+demo_*.py
+decode_*.py
+detailed_*.py
+new_*.py
+remove_*.py
+update_*.py
+apply_*.py
+
+# Specific files
+COMPLETION_REPORT.md
+README.md
+
+# Additional ignore patterns
+# Backup files
+*.bak
+*.backup
+backup/
+backup_*/
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.p12
+
+# Configuration files with sensitive data
+config.ini
+.env.local
+.env.production
+secrets.json
+
+# Model files (large files)
+*.pkl
+*.joblib
+*.h5
+*.pb
+
+# OCR cache
+.easyocr/
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Test outputs
+test_results/
+coverage_reports/
+
+# Local development files
+local_config.py
+dev_settings.py
+
+# IDE specific files
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# OS specific files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Docker related
+.docker/
+docker-compose.override.yml
+
+# Git hooks and config
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Documentation source
+docs/
+*.rst
+
+# Large invoice files (will be mounted as volumes)
+invoices/pdf/*.pdf
+invoices/imge/*.jpg
+invoices/imge/*.jpeg
+invoices/imge/*.png
+invoices/imge/*.gif
+invoices/imge/*.bmp
+
+# ===== 生产模式Docker忽略规则 =====
+# Production Mode Docker Ignore Rules
+
+# 所有开发和调试脚本
+*_*.py
+analyze_*.py
+debug_*.py
+check_*.py
+fix_*.py
+verify_*.py
+cleanup_*.py
+improve_*.py
+manage_*.py
+detailed_*.py
+production_*.py
+
+# 所有测试相关文件
+tests/
+test_*/
+*_test.py
+test_*.py
+pytest.ini
+conftest.py
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# 所有文档和报告
+*.md
+docs/
+documentation/
+*_report.json
+*_verification_report.json
+
+# 所有临时和备份文件
+*.tmp
+*.temp
+*.bak
+*.backup
+temp/
+tmp/
+backup_*/
+*_backup_*/
+
+# 开发工具配置
+.vscode/
+.idea/
+*.sublime-*
+.editorconfig
+
+# Git相关
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD文件
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# 环境配置文件
+.env*
+!.env.example
+
+# 日志文件
+*.log
+logs/
+
+# 数据库文件（通过卷挂载）
+*.db
+*.sqlite*
+data/

@@ -1,0 +1,321 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: invoice-ocr-system
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from git commits
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        else
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        fi
+        
+        if [ -n "$PREVIOUS_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+        fi
+        
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: Release ${{ steps.get_version.outputs.version }}
+        body: |
+          ## 🚀 发票OCR系统 ${{ steps.get_version.outputs.version }}
+          
+          ### 📋 更新内容
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ### 🐳 Docker镜像
+          ```bash
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
+          ```
+          
+          ### 🚀 快速部署
+          ```bash
+          # 下载配置文件
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/docker-compose.yml
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.version }}/.env.production
+          
+          # 配置环境变量
+          cp .env.production .env
+          # 编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS
+          
+          # 启动服务
+          docker-compose up -d
+          ```
+          
+          ### 📊 系统要求
+          - CPU: 2核心以上
+          - 内存: 4GB以上
+          - 存储: 10GB以上
+          - Docker: 20.10.0+
+          - Docker Compose: 1.29.0+
+          
+          ### 🔒 安全提醒
+          - 请更新 `.env` 文件中的 `SECRET_KEY`
+          - 配置正确的 `CORS_ORIGINS` 域名
+          - 建议启用HTTPS和防火墙
+        draft: false
+        prerelease: false
+
+  build-release:
+    name: Build Release Assets
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push release image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
+          ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+        labels: |
+          org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+          org.opencontainers.image.description=Invoice OCR System
+          org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
+          org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.source=${{ github.repositoryUrl }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Create deployment package
+      run: |
+        mkdir -p release-package
+        
+        # Copy deployment files
+        cp docker-compose.yml release-package/
+        cp .env.production release-package/
+        cp deploy.sh release-package/
+        cp deploy.bat release-package/
+        cp PRODUCTION_CHECKLIST.md release-package/
+        cp PRODUCTION_READY_SUMMARY.md release-package/
+        cp README.md release-package/
+        
+        # Create deployment script
+        cat > release-package/quick-deploy.sh << 'EOF'
+        #!/bin/bash
+        echo "🚀 发票OCR系统快速部署脚本"
+        echo "================================"
+        
+        # 检查Docker
+        if ! command -v docker &> /dev/null; then
+            echo "❌ Docker未安装，请先安装Docker"
+            exit 1
+        fi
+        
+        if ! command -v docker-compose &> /dev/null; then
+            echo "❌ Docker Compose未安装，请先安装Docker Compose"
+            exit 1
+        fi
+        
+        # 配置环境变量
+        if [ ! -f .env ]; then
+            cp .env.production .env
+            echo "⚠️ 请编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS"
+            echo "按任意键继续..."
+            read -n 1
+        fi
+        
+        # 创建必要目录
+        mkdir -p data logs invoices/pdf invoices/imge invoices/unrecognized
+        
+        # 启动服务
+        echo "🚀 启动服务..."
+        docker-compose up -d
+        
+        # 等待服务启动
+        echo "⏳ 等待服务启动..."
+        sleep 10
+        
+        # 检查服务状态
+        if curl -f -s http://localhost:8000/health > /dev/null; then
+            echo "✅ 服务启动成功！"
+            echo "🌐 Web界面: http://localhost:8000"
+            echo "🔍 健康检查: http://localhost:8000/health"
+        else
+            echo "❌ 服务启动失败，请检查日志"
+            docker-compose logs
+        fi
+        EOF
+        
+        chmod +x release-package/quick-deploy.sh
+        
+        # Create Windows deployment script
+        cat > release-package/quick-deploy.bat << 'EOF'
+        @echo off
+        echo 🚀 发票OCR系统快速部署脚本
+        echo ================================
+        
+        REM 检查Docker
+        docker --version >nul 2>&1
+        if errorlevel 1 (
+            echo ❌ Docker未安装，请先安装Docker Desktop
+            pause
+            exit /b 1
+        )
+        
+        docker-compose --version >nul 2>&1
+        if errorlevel 1 (
+            echo ❌ Docker Compose未安装，请先安装Docker Compose
+            pause
+            exit /b 1
+        )
+        
+        REM 配置环境变量
+        if not exist .env (
+            copy .env.production .env
+            echo ⚠️ 请编辑 .env 文件，更新 SECRET_KEY 和 CORS_ORIGINS
+            pause
+        )
+        
+        REM 创建必要目录
+        if not exist data mkdir data
+        if not exist logs mkdir logs
+        if not exist invoices\pdf mkdir invoices\pdf
+        if not exist invoices\imge mkdir invoices\imge
+        if not exist invoices\unrecognized mkdir invoices\unrecognized
+        
+        REM 启动服务
+        echo 🚀 启动服务...
+        docker-compose up -d
+        
+        REM 等待服务启动
+        echo ⏳ 等待服务启动...
+        timeout /t 10 /nobreak >nul
+        
+        REM 检查服务状态
+        curl -f -s http://localhost:8000/health >nul 2>&1
+        if not errorlevel 1 (
+            echo ✅ 服务启动成功！
+            echo 🌐 Web界面: http://localhost:8000
+            echo 🔍 健康检查: http://localhost:8000/health
+        ) else (
+            echo ❌ 服务启动失败，请检查日志
+            docker-compose logs
+        )
+        
+        pause
+        EOF
+        
+        # Create archive
+        tar -czf invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz -C release-package .
+        zip -r invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip release-package/
+        
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz
+        asset_name: invoice-ocr-system-${{ needs.create-release.outputs.version }}.tar.gz
+        asset_content_type: application/gzip
+        
+    - name: Upload release assets (ZIP)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip
+        asset_name: invoice-ocr-system-${{ needs.create-release.outputs.version }}.zip
+        asset_content_type: application/zip
+        
+    - name: Upload docker-compose.yml
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./docker-compose.yml
+        asset_name: docker-compose.yml
+        asset_content_type: text/yaml
+        
+    - name: Upload .env.production
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./.env.production
+        asset_name: .env.production
+        asset_content_type: text/plain
+
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [create-release, build-release]
+    
+    steps:
+    - name: Notify success
+      run: |
+        echo "🎉 Release ${{ needs.create-release.outputs.version }} created successfully!"
+        echo "🐳 Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}"
+        echo "📦 Release assets uploaded"
+        echo "🚀 Ready for deployment!"
