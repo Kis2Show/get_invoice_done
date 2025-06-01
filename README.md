@@ -10,10 +10,13 @@
 ## ✨ 功能特性
 
 ### 🔍 智能OCR识别
-- **高精度识别**: 基于EasyOCR引擎，支持中文发票的高精度识别
+- **双引擎支持**:
+  - **图片发票**: 使用EasyOCR引擎，支持中文发票的高精度识别
+  - **PDF发票**: 使用PyMuPDF直接提取文本，速度更快、精度更高
 - **多格式支持**: 支持PDF、JPG、PNG、BMP、TIFF等格式
 - **智能布局分析**: 自动识别发票布局和字段位置
 - **错误处理**: 智能处理识别失败的发票文件
+- **文件上传**: 支持用户上传发票文件进行识别
 
 ### 📊 数据管理
 - **信息提取**: 自动提取发票号码、金额、日期、公司信息等关键字段
@@ -37,10 +40,12 @@
 
 ### 后端技术
 - **框架**: FastAPI (高性能异步Web框架)
-- **OCR引擎**: EasyOCR (支持多语言OCR识别)
-- **PDF处理**: PyMuPDF (高效PDF文本提取)
+- **OCR引擎**:
+  - **EasyOCR**: 图片发票识别 (支持中英文混合识别)
+  - **PyMuPDF**: PDF文本直接提取 (高效、准确)
 - **数据库**: SQLite (轻量级关系数据库)
 - **异步处理**: asyncio (异步任务处理)
+- **文件处理**: 支持多种格式的发票文件上传和管理
 
 ### 前端技术
 - **界面**: HTML5 + CSS3 + JavaScript
@@ -127,10 +132,19 @@ invoices/
 
 ## 使用说明
 
-### 1. 处理发票
-- 点击"处理发票"按钮，系统会自动扫描`/invoices`目录下的所有发票文件
-- 系统会使用OCR技术识别发票内容并提取关键信息
-- 处理完成后会显示统计信息
+### 1. 发票处理方式
+
+#### 方式一：本地文件扫描
+- 将发票文件放入`/invoices`目录下的对应子目录：
+  - PDF文件：`/invoices/pdf/`
+  - 图片文件：`/invoices/imge/`
+- 点击"处理发票"按钮，系统会自动扫描并识别所有发票文件
+
+#### 方式二：在线上传
+- 点击"上传发票"按钮
+- 选择一个或多个发票文件（支持PDF、JPG、PNG、BMP、TIFF格式）
+- 系统会自动保存文件并进行OCR识别
+- 上传完成后可立即查看识别结果
 
 ### 2. 查看和筛选
 - 在发票列表中查看所有已处理的发票
@@ -165,8 +179,12 @@ invoices/
 | `GET` | `/api/invoices/` | 获取发票列表(支持筛选) |
 | `GET` | `/api/invoices/{id}` | 获取单个发票详情 |
 | `DELETE` | `/api/invoices/{id}` | 删除发票 |
+| `POST` | `/api/invoices/upload` | **上传发票文件** |
+| `GET` | `/api/invoices/files/list` | **列出所有文件** |
+| `DELETE` | `/api/invoices/files/{file_name}` | **删除指定文件** |
 | `POST` | `/api/invoices/deduplicate` | 去重操作 |
 | `GET` | `/api/invoices/stats/summary` | 获取统计信息 |
+| `GET` | `/api/invoices/errors/statistics` | 获取错误统计 |
 | `GET` | `/health` | 健康检查端点 |
 
 ### 📝 API使用示例
@@ -175,8 +193,19 @@ invoices/
 # 处理发票
 curl -X POST "http://localhost:8000/api/invoices/process"
 
+# 上传发票文件
+curl -X POST "http://localhost:8000/api/invoices/upload" \
+  -F "files=@invoice1.pdf" \
+  -F "files=@invoice2.jpg"
+
 # 获取发票列表
 curl "http://localhost:8000/api/invoices/?limit=10&offset=0"
+
+# 列出所有文件
+curl "http://localhost:8000/api/invoices/files/list"
+
+# 删除指定文件
+curl -X DELETE "http://localhost:8000/api/invoices/files/invoice.pdf"
 
 # 获取统计信息
 curl "http://localhost:8000/api/invoices/stats/summary"

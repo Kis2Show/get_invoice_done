@@ -75,18 +75,32 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">操作面板</h5>
-                        <button id="processBtn" class="btn btn-primary me-2">
-                            <i class="bi bi-play-circle"></i> 处理发票
-                        </button>
-                        <button id="refreshBtn" class="btn btn-secondary me-2">
-                            <i class="bi bi-arrow-clockwise"></i> 刷新数据
-                        </button>
-                        <button id="deduplicateBtn" class="btn btn-warning me-2">
-                            <i class="bi bi-files"></i> 去重
-                        </button>
-                        <button id="errorManagementBtn" class="btn btn-danger me-2">
-                            <i class="bi bi-exclamation-triangle"></i> 错误管理
-                        </button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">文件处理</h6>
+                                <button id="uploadBtn" class="btn btn-success me-2 mb-2">
+                                    <i class="bi bi-cloud-upload"></i> 上传发票
+                                </button>
+                                <button id="processBtn" class="btn btn-primary me-2 mb-2">
+                                    <i class="bi bi-play-circle"></i> 处理发票
+                                </button>
+                                <button id="refreshBtn" class="btn btn-secondary me-2 mb-2">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新数据
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">数据管理</h6>
+                                <button id="deduplicateBtn" class="btn btn-warning me-2 mb-2">
+                                    <i class="bi bi-files"></i> 去重
+                                </button>
+                                <button id="errorManagementBtn" class="btn btn-danger me-2 mb-2">
+                                    <i class="bi bi-exclamation-triangle"></i> 错误管理
+                                </button>
+                                <button id="fileManagementBtn" class="btn btn-info me-2 mb-2">
+                                    <i class="bi bi-folder"></i> 文件管理
+                                </button>
+                            </div>
+                        </div>
                         <div class="loading spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -290,6 +304,135 @@
                                 <i class="bi bi-info-circle"></i>
                                 <strong>提示：</strong>未识别的发票文件已自动分类到不同目录中，您可以根据错误类型进行人工处理。
                                 处理完成后，可以将文件重新放回发票目录进行重新识别。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传发票模态框 -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传发票文件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fileInput" class="form-label">选择发票文件</label>
+                        <input type="file" class="form-control" id="fileInput" multiple
+                               accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.tif"
+                               title="只允许上传PDF或图片文件">
+                        <div class="form-text">
+                            支持格式：PDF、JPG、PNG、BMP、TIFF（可多选）
+                        </div>
+                    </div>
+
+                    <!-- 文件预览区域 -->
+                    <div id="filePreview" class="mb-3" style="display: none;">
+                        <h6>已选择的文件：</h6>
+                        <div id="fileList" class="list-group">
+                            <!-- 文件列表将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <!-- 上传进度 -->
+                    <div id="uploadProgress" style="display: none;">
+                        <div class="progress mb-3">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div id="uploadStatus" class="text-muted"></div>
+                    </div>
+
+                    <!-- 上传结果 -->
+                    <div id="uploadResults" style="display: none;">
+                        <h6>上传结果：</h6>
+                        <div id="uploadResultsList" class="list-group">
+                            <!-- 上传结果将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" id="startUploadBtn" disabled>
+                        <i class="bi bi-cloud-upload"></i> 开始上传
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件管理模态框 -->
+    <div class="modal fade" id="fileManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">文件管理</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 文件统计 -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">总文件数</h5>
+                                    <h2 id="totalFiles">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">PDF文件</h5>
+                                    <h2 id="pdfFiles">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">图片文件</h5>
+                                    <h2 id="imageFiles">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文件列表 -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="card-title mb-0">文件列表</h6>
+                                        <button id="refreshFilesBtn" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                                        </button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>文件名</th>
+                                                    <th>类型</th>
+                                                    <th>大小</th>
+                                                    <th>修改时间</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="fileManagementList">
+                                                <!-- 文件列表将在这里显示 -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

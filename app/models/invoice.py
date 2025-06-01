@@ -77,3 +77,21 @@ class ProcessingStatus(BaseModel):
     processed_files: int
     failed_files: int
     status: str
+
+
+class InvoiceUpload(BaseModel):
+    """发票上传响应模型"""
+    file_name: str
+    file_size: int
+    file_type: str
+    upload_status: str
+    message: str
+
+
+class InvoiceUploadResponse(BaseModel):
+    """批量上传响应模型"""
+    uploaded_files: List[InvoiceUpload]
+    total_files: int
+    successful_uploads: int
+    failed_uploads: int
+    message: str

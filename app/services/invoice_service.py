@@ -154,6 +154,26 @@ class InvoiceService:
             self.db.rollback()
             return False
 
+    def delete_invoice_by_file_path(self, file_path: str) -> int:
+        """根据文件路径删除发票记录，返回删除的记录数"""
+        try:
+            # 查找所有匹配的发票记录
+            invoices = self.db.query(Invoice).filter(Invoice.file_path == file_path).all()
+            deleted_count = len(invoices)
+
+            # 删除所有匹配的记录
+            for invoice in invoices:
+                self.db.delete(invoice)
+
+            self.db.commit()
+            logger.info(f"删除了 {deleted_count} 条发票记录，文件路径: {file_path}")
+            return deleted_count
+
+        except Exception as e:
+            logger.error(f"Error deleting invoices by file path {file_path}: {e}")
+            self.db.rollback()
+            return 0
+
     def clear_all_invoices(self) -> int:
         """清空所有发票数据"""
         try:

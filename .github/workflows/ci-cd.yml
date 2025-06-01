@@ -172,9 +172,13 @@ jobs:
     steps:
     - name: Debug image information
       run: |
+        echo "=== Docker Image Information ==="
         echo "Image name: ${{ needs.build.outputs.image-name }}"
         echo "Image tags: ${{ needs.build.outputs.image-tags }}"
         echo "Image digest: ${{ needs.build.outputs.image-digest }}"
+        echo "Event name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "================================"
 
     - name: Extract single image tag for scanning
       id: extract-tag
@@ -184,6 +188,13 @@ jobs:
         echo "Selected image tag for scanning: $FIRST_TAG"
         echo "image-tag=$FIRST_TAG" >> $GITHUB_OUTPUT
 
+        # Validate that we have a valid image tag
+        if [ -z "$FIRST_TAG" ] || [ "$FIRST_TAG" = "." ]; then
+          echo "Error: Invalid or empty image tag: '$FIRST_TAG'"
+          echo "Available tags: ${{ needs.build.outputs.image-tags }}"
+          exit 1
+        fi
+
     - name: Run Trivy vulnerability scanner on image
       uses: aquasecurity/trivy-action@master
       with:
@@ -192,12 +203,26 @@ jobs:
         output: 'docker-trivy-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
         exit-code: '0'  # Don't fail the build on vulnerabilities
+      continue-on-error: true  # Continue even if Trivy fails
+
+    - name: Fallback Trivy scan using image name
+      if: failure() && needs.build.outputs.image-name != ''
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ needs.build.outputs.image-name }}
+        format: 'sarif'
+        output: 'docker-trivy-results-fallback.sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        exit-code: '0'
+      continue-on-error: true
 
     - name: Upload Docker scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('docker-trivy-results.sarif') != ''
+      if: always() && (hashFiles('docker-trivy-results.sarif') != '' || hashFiles('docker-trivy-results-fallback.sarif') != '')
       with:
-        sarif_file: 'docker-trivy-results.sarif'
+        sarif_file: |
+          docker-trivy-results.sarif
+          docker-trivy-results-fallback.sarif
 
   deploy-staging:
     name: Deploy to Staging

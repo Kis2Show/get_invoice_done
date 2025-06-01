@@ -17,7 +17,16 @@ class InvoiceApp {
         document.getElementById('searchBtn').addEventListener('click', () => this.loadInvoices());
         document.getElementById('deleteInvoiceBtn').addEventListener('click', () => this.deleteInvoice());
         document.getElementById('errorManagementBtn').addEventListener('click', () => this.showErrorManagement());
-        
+        document.getElementById('uploadBtn').addEventListener('click', () => this.showUploadModal());
+        document.getElementById('fileManagementBtn').addEventListener('click', () => this.showFileManagement());
+
+        // 上传相关事件
+        document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileSelection(e));
+        document.getElementById('startUploadBtn').addEventListener('click', () => this.uploadFiles());
+
+        // 文件管理相关事件
+        document.getElementById('refreshFilesBtn').addEventListener('click', () => this.loadFileList());
+
         // 回车键搜索
         ['invoiceNumber', 'sellerName', 'buyerName', 'minAmount', 'maxAmount'].forEach(id => {
             document.getElementById(id).addEventListener('keypress', (e) => {
@@ -536,6 +545,296 @@ class InvoiceApp {
             }
         } catch (error) {
             this.showAlert(`清空文件失败: ${error.message}`, 'danger');
+        }
+    }
+
+    // ==================== 上传功能 ====================
+
+    showUploadModal() {
+        // 重置上传表单
+        this.resetUploadForm();
+        // 显示上传模态框
+        new bootstrap.Modal(document.getElementById('uploadModal')).show();
+    }
+
+    resetUploadForm() {
+        document.getElementById('fileInput').value = '';
+        document.getElementById('filePreview').style.display = 'none';
+        document.getElementById('uploadProgress').style.display = 'none';
+        document.getElementById('uploadResults').style.display = 'none';
+        document.getElementById('startUploadBtn').disabled = true;
+        document.getElementById('fileList').innerHTML = '';
+        document.getElementById('uploadResultsList').innerHTML = '';
+    }
+
+    handleFileSelection(event) {
+        const files = Array.from(event.target.files);
+
+        if (files.length === 0) {
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('startUploadBtn').disabled = true;
+            return;
+        }
+
+        // 验证文件类型
+        const invalidFiles = this.validateFileTypes(files);
+        if (invalidFiles.length > 0) {
+            this.showAlert(`以下文件类型不支持：${invalidFiles.join(', ')}。只允许上传PDF或图片文件。`, 'warning');
+            event.target.value = ''; // 清空文件选择
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('startUploadBtn').disabled = true;
+            return;
+        }
+
+        // 显示文件预览
+        this.showFilePreview(files);
+        document.getElementById('startUploadBtn').disabled = false;
+    }
+
+    validateFileTypes(files) {
+        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif'];
+        const invalidFiles = [];
+
+        files.forEach(file => {
+            const ext = file.name.toLowerCase().split('.').pop();
+            if (!allowedExtensions.includes(ext)) {
+                invalidFiles.push(file.name);
+            }
+        });
+
+        return invalidFiles;
+    }
+
+    showFilePreview(files) {
+        const fileList = document.getElementById('fileList');
+        const filePreview = document.getElementById('filePreview');
+
+        fileList.innerHTML = files.map((file, index) => {
+            const fileSize = (file.size / 1024).toFixed(1);
+            const fileType = this.getFileTypeIcon(file.name);
+
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi ${fileType.icon} me-2"></i>
+                        <strong>${file.name}</strong>
+                        <small class="text-muted ms-2">(${fileSize} KB)</small>
+                    </div>
+                    <span class="badge bg-${fileType.color}">${fileType.type}</span>
+                </div>
+            `;
+        }).join('');
+
+        filePreview.style.display = 'block';
+    }
+
+    getFileTypeIcon(fileName) {
+        const ext = fileName.toLowerCase().split('.').pop();
+
+        if (ext === 'pdf') {
+            return { icon: 'bi-file-earmark-pdf', color: 'danger', type: 'PDF' };
+        } else if (['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif'].includes(ext)) {
+            return { icon: 'bi-file-earmark-image', color: 'primary', type: '图片' };
+        } else {
+            return { icon: 'bi-file-earmark', color: 'secondary', type: '其他' };
+        }
+    }
+
+    async uploadFiles() {
+        const fileInput = document.getElementById('fileInput');
+        const files = fileInput.files;
+
+        if (files.length === 0) {
+            this.showAlert('请选择要上传的文件', 'warning');
+            return;
+        }
+
+        // 显示上传进度
+        this.showUploadProgress();
+
+        try {
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                formData.append('files', file);
+            });
+
+            const response = await fetch('/api/invoices/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showUploadResults(result);
+                this.showAlert(`上传完成！成功: ${result.successful_uploads}, 失败: ${result.failed_uploads}`, 'success');
+
+                // 刷新数据
+                setTimeout(() => {
+                    this.refreshData();
+                }, 1000);
+            } else {
+                this.showAlert('上传失败: ' + result.detail, 'danger');
+            }
+        } catch (error) {
+            this.showAlert('上传失败: ' + error.message, 'danger');
+        } finally {
+            this.hideUploadProgress();
+        }
+    }
+
+    showUploadProgress() {
+        document.getElementById('uploadProgress').style.display = 'block';
+        document.getElementById('uploadStatus').textContent = '正在上传文件...';
+        document.getElementById('startUploadBtn').disabled = true;
+
+        // 模拟进度条动画
+        const progressBar = document.querySelector('#uploadProgress .progress-bar');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 20;
+            if (progress > 90) progress = 90;
+            progressBar.style.width = progress + '%';
+        }, 200);
+
+        // 保存interval ID以便后续清除
+        this.uploadProgressInterval = interval;
+    }
+
+    hideUploadProgress() {
+        if (this.uploadProgressInterval) {
+            clearInterval(this.uploadProgressInterval);
+        }
+
+        const progressBar = document.querySelector('#uploadProgress .progress-bar');
+        progressBar.style.width = '100%';
+
+        setTimeout(() => {
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('startUploadBtn').disabled = false;
+        }, 500);
+    }
+
+    showUploadResults(result) {
+        const resultsList = document.getElementById('uploadResultsList');
+        const uploadResults = document.getElementById('uploadResults');
+
+        resultsList.innerHTML = result.uploaded_files.map(file => {
+            const statusClass = file.upload_status === 'success' ? 'success' : 'danger';
+            const statusIcon = file.upload_status === 'success' ? 'bi-check-circle' : 'bi-x-circle';
+
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi ${statusIcon} me-2 text-${statusClass}"></i>
+                        <strong>${file.file_name}</strong>
+                        <small class="text-muted ms-2">(${(file.file_size / 1024).toFixed(1)} KB)</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-${statusClass}">${file.upload_status}</span>
+                        ${file.message ? `<small class="text-muted d-block">${file.message}</small>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        uploadResults.style.display = 'block';
+    }
+
+    // ==================== 文件管理功能 ====================
+
+    async showFileManagement() {
+        try {
+            await this.loadFileList();
+            new bootstrap.Modal(document.getElementById('fileManagementModal')).show();
+        } catch (error) {
+            this.showAlert('加载文件管理失败: ' + error.message, 'danger');
+        }
+    }
+
+    async loadFileList() {
+        try {
+            const response = await fetch('/api/invoices/files/list');
+            const data = await response.json();
+
+            if (response.ok) {
+                this.updateFileStatistics(data);
+                this.renderFileList(data.files);
+            } else {
+                this.showAlert('加载文件列表失败', 'danger');
+            }
+        } catch (error) {
+            this.showAlert('加载文件列表失败: ' + error.message, 'danger');
+        }
+    }
+
+    updateFileStatistics(data) {
+        document.getElementById('totalFiles').textContent = data.total_files || 0;
+        document.getElementById('pdfFiles').textContent = data.pdf_files || 0;
+        document.getElementById('imageFiles').textContent = data.image_files || 0;
+    }
+
+    renderFileList(files) {
+        const tbody = document.getElementById('fileManagementList');
+
+        if (!files || (files.pdf && files.pdf.length === 0 && files.images && files.images.length === 0)) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">暂无文件</td></tr>';
+            return;
+        }
+
+        const allFiles = [...(files.pdf || []), ...(files.images || [])];
+
+        tbody.innerHTML = allFiles.map(file => {
+            const fileSize = (file.file_size / 1024).toFixed(1);
+            const modifiedTime = new Date(file.modified_time * 1000).toLocaleString('zh-CN');
+            const fileTypeIcon = this.getFileTypeIcon(file.file_name);
+
+            return `
+                <tr>
+                    <td>
+                        <i class="bi ${fileTypeIcon.icon} me-2"></i>
+                        ${file.file_name}
+                    </td>
+                    <td>
+                        <span class="badge bg-${fileTypeIcon.color}">${fileTypeIcon.type}</span>
+                    </td>
+                    <td>${fileSize} KB</td>
+                    <td>${modifiedTime}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="app.deleteFile('${file.file_name}')"
+                                title="删除文件">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async deleteFile(fileName) {
+        if (!confirm(`确定要删除文件 "${fileName}" 吗？此操作不可撤销。`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/invoices/files/${encodeURIComponent(fileName)}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showAlert(`文件 "${fileName}" 删除成功`, 'success');
+                // 刷新文件列表
+                this.loadFileList();
+                // 刷新主页数据
+                this.refreshData();
+            } else {
+                this.showAlert(`删除文件失败: ${result.detail}`, 'danger');
+            }
+        } catch (error) {
+            this.showAlert(`删除文件失败: ${error.message}`, 'danger');
         }
     }
 }
