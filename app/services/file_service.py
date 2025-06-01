@@ -22,27 +22,28 @@ class FileService:
         self.image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
         self.pdf_extensions = {'.pdf'}
 
-        # 需要忽略的文件
+        # 需要忽略的文件（完整文件名匹配）
         self.ignored_files = {
             '.gitkeep',
             '.gitignore',
             '.DS_Store',
             'Thumbs.db',
-            'desktop.ini'
+            'desktop.ini',
+            'README.md',
+            'readme.txt',
+            'LICENSE',
+            'CHANGELOG.md'
         }
 
-        # 需要忽略的文件扩展名
+        # 需要忽略的文件扩展名（非PDF/图片的所有其他格式）
         self.ignored_extensions = {
-            '.txt',
-            '.log',
-            '.json',
-            '.xml',
-            '.csv',
-            '.md',
-            '.tmp',
-            '.temp',
-            '.bak',
-            '.backup'
+            '.txt', '.log', '.json', '.xml', '.csv', '.md', '.yml', '.yaml',
+            '.tmp', '.temp', '.bak', '.backup', '.old', '.orig',
+            '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+            '.zip', '.rar', '.7z', '.tar', '.gz',
+            '.exe', '.msi', '.dmg', '.deb', '.rpm',
+            '.py', '.js', '.html', '.css', '.sql',
+            '.ini', '.cfg', '.conf', '.properties'
         }
 
         # 支持的MIME类型
@@ -68,61 +69,91 @@ class FileService:
             raise
 
     def should_ignore_file(self, file_path: Path) -> bool:
-        """检查文件是否应该被忽略"""
+        """检查文件是否应该被忽略（严格过滤：只处理PDF和图片文件）"""
         file_name = file_path.name.lower()
         file_ext = file_path.suffix.lower()
 
-        # 检查文件名
+        # 1. 检查完整文件名（忽略特定文件）
         if file_name in self.ignored_files:
+            logger.debug(f"忽略特定文件: {file_path}")
             return True
 
-        # 检查扩展名
+        # 2. 检查扩展名（忽略非PDF/图片文件）
         if file_ext in self.ignored_extensions:
+            logger.debug(f"忽略扩展名 {file_ext}: {file_path}")
             return True
 
-        # 检查隐藏文件（以.开头的文件，除了已知的扩展名）
-        if file_name.startswith('.') and file_ext not in self.image_extensions and file_ext not in self.pdf_extensions:
+        # 3. 严格检查：只允许PDF和图片扩展名
+        if file_ext not in self.image_extensions and file_ext not in self.pdf_extensions:
+            logger.debug(f"忽略不支持的文件类型 {file_ext}: {file_path}")
             return True
 
-        # 检查文件大小（忽略空文件或过小的文件）
+        # 4. 检查隐藏文件（以.开头的文件）
+        if file_name.startswith('.'):
+            logger.debug(f"忽略隐藏文件: {file_path}")
+            return True
+
+        # 5. 检查文件大小（忽略空文件或过小的文件）
         try:
-            if file_path.stat().st_size < 100:  # 小于100字节的文件
+            file_size = file_path.stat().st_size
+            if file_size < 100:  # 小于100字节的文件
+                logger.debug(f"忽略过小文件 ({file_size}字节): {file_path}")
                 return True
-        except:
+        except Exception as e:
+            logger.warning(f"无法获取文件大小，忽略文件: {file_path}, 错误: {e}")
+            return True
+
+        # 6. 检查文件名是否包含无效字符
+        invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+        if any(char in file_name for char in invalid_chars):
+            logger.debug(f"忽略包含无效字符的文件: {file_path}")
             return True
 
         return False
 
     def scan_files(self) -> List[Tuple[str, str]]:
-        """扫描发票目录，返回文件路径和类型的列表"""
+        """扫描发票目录，返回文件路径和类型的列表（严格过滤：只返回PDF和图片文件）"""
         files = []
         ignored_count = 0
+        total_files = 0
 
-        # 扫描图片文件
+        # 扫描图片文件目录
         if self.image_dir.exists():
+            logger.info(f"扫描图片目录: {self.image_dir}")
             for file_path in self.image_dir.rglob('*'):
                 if file_path.is_file():
+                    total_files += 1
                     if self.should_ignore_file(file_path):
                         ignored_count += 1
-                        logger.debug(f"忽略文件: {file_path}")
                         continue
 
+                    # 双重检查：确保是图片文件
                     if file_path.suffix.lower() in self.image_extensions:
                         files.append((str(file_path), 'image'))
+                        logger.debug(f"发现图片文件: {file_path}")
+                    else:
+                        ignored_count += 1
+                        logger.debug(f"忽略非图片文件: {file_path}")
 
-        # 扫描PDF文件
+        # 扫描PDF文件目录
         if self.pdf_dir.exists():
+            logger.info(f"扫描PDF目录: {self.pdf_dir}")
             for file_path in self.pdf_dir.rglob('*'):
                 if file_path.is_file():
+                    total_files += 1
                     if self.should_ignore_file(file_path):
                         ignored_count += 1
-                        logger.debug(f"忽略文件: {file_path}")
                         continue
 
+                    # 双重检查：确保是PDF文件
                     if file_path.suffix.lower() in self.pdf_extensions:
                         files.append((str(file_path), 'pdf'))
+                        logger.debug(f"发现PDF文件: {file_path}")
+                    else:
+                        ignored_count += 1
+                        logger.debug(f"忽略非PDF文件: {file_path}")
 
-        logger.info(f"Found {len(files)} invoice files, ignored {ignored_count} non-invoice files")
+        logger.info(f"文件扫描完成: 总计 {total_files} 个文件，发现 {len(files)} 个发票文件，忽略 {ignored_count} 个非发票文件")
         return files
     
     def get_file_hash(self, file_path: str) -> str:
