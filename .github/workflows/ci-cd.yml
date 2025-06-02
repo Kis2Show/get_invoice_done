@@ -119,10 +119,17 @@ jobs:
     - name: Run Safety dependency scanner
       run: |
         pip install safety
-        safety check --json --output safety-report.json || true
-        # Create empty file if safety check fails
+        # Install requirements first to ensure all dependencies are available
+        pip install -r requirements.txt
+        # Run safety check with proper error handling
+        safety check --json --output safety-report.json || {
+          echo "Safety check failed, creating fallback report..."
+          echo '{"vulnerabilities": [], "scan_date": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "status": "scan_failed", "error": "Safety check command failed"}' > safety-report.json
+        }
+        # Verify file was created
         if [ ! -f safety-report.json ]; then
-          echo '{"vulnerabilities": [], "scan_date": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "status": "completed"}' > safety-report.json
+          echo "Creating empty safety report as fallback..."
+          echo '{"vulnerabilities": [], "scan_date": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "status": "no_file_created"}' > safety-report.json
         fi
 
     - name: Upload security scan results
