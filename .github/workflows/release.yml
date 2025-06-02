@@ -160,15 +160,75 @@ jobs:
     - name: Create deployment package
       run: |
         mkdir -p release-package
-        
-        # Copy deployment files
-        cp docker-compose.yml release-package/
-        cp .env.production release-package/
-        cp deploy.sh release-package/
-        cp deploy.bat release-package/
-        cp PRODUCTION_CHECKLIST.md release-package/
-        cp PRODUCTION_READY_SUMMARY.md release-package/
-        cp README.md release-package/
+
+        # List all files to debug
+        echo "=== Available files ==="
+        ls -la
+        echo "======================="
+
+        # Copy deployment files with error checking
+        echo "Copying deployment files..."
+
+        if [ -f docker-compose.yml ]; then
+          cp docker-compose.yml release-package/
+          echo "✅ docker-compose.yml copied"
+        else
+          echo "❌ docker-compose.yml not found"
+        fi
+
+        if [ -f .env.production ]; then
+          cp .env.production release-package/
+          echo "✅ .env.production copied"
+        else
+          echo "❌ .env.production not found"
+        fi
+
+        if [ -f deploy.sh ]; then
+          cp deploy.sh release-package/
+          chmod +x release-package/deploy.sh
+          echo "✅ deploy.sh copied"
+        else
+          echo "❌ deploy.sh not found"
+        fi
+
+        if [ -f deploy.bat ]; then
+          cp deploy.bat release-package/
+          echo "✅ deploy.bat copied"
+        else
+          echo "❌ deploy.bat not found"
+        fi
+
+        if [ -f PRODUCTION_CHECKLIST.md ]; then
+          cp PRODUCTION_CHECKLIST.md release-package/
+          echo "✅ PRODUCTION_CHECKLIST.md copied"
+        else
+          echo "❌ PRODUCTION_CHECKLIST.md not found"
+        fi
+
+        if [ -f PRODUCTION_READY_SUMMARY.md ]; then
+          cp PRODUCTION_READY_SUMMARY.md release-package/
+          echo "✅ PRODUCTION_READY_SUMMARY.md copied"
+        else
+          echo "❌ PRODUCTION_READY_SUMMARY.md not found"
+        fi
+
+        if [ -f README.md ]; then
+          cp README.md release-package/
+          echo "✅ README.md copied"
+        else
+          echo "❌ README.md not found"
+        fi
+
+        if [ -f DEPLOYMENT.md ]; then
+          cp DEPLOYMENT.md release-package/
+          echo "✅ DEPLOYMENT.md copied"
+        else
+          echo "❌ DEPLOYMENT.md not found"
+        fi
+
+        echo "=== Release package contents ==="
+        ls -la release-package/
+        echo "==============================="
         
         # Create deployment script
         cat > release-package/quick-deploy.sh << 'EOF'
@@ -282,12 +342,30 @@ jobs:
 
     - name: Upload release assets
       run: |
-        # Upload all assets using GitHub CLI
-        gh release upload ${{ needs.create-release.outputs.version }} \
-          get_invoice_done-${{ needs.create-release.outputs.version }}.tar.gz \
-          get_invoice_done-${{ needs.create-release.outputs.version }}.zip \
-          docker-compose.yml \
-          .env.production
+        # Upload all assets using GitHub CLI with error handling
+        echo "Uploading release assets..."
+
+        # Upload archives
+        if [ -f get_invoice_done-${{ needs.create-release.outputs.version }}.tar.gz ]; then
+          gh release upload ${{ needs.create-release.outputs.version }} get_invoice_done-${{ needs.create-release.outputs.version }}.tar.gz || echo "Failed to upload tar.gz"
+        fi
+
+        if [ -f get_invoice_done-${{ needs.create-release.outputs.version }}.zip ]; then
+          gh release upload ${{ needs.create-release.outputs.version }} get_invoice_done-${{ needs.create-release.outputs.version }}.zip || echo "Failed to upload zip"
+        fi
+
+        # Upload individual files
+        if [ -f docker-compose.yml ]; then
+          gh release upload ${{ needs.create-release.outputs.version }} docker-compose.yml || echo "Failed to upload docker-compose.yml"
+        fi
+
+        if [ -f .env.production ]; then
+          gh release upload ${{ needs.create-release.outputs.version }} .env.production || echo "Failed to upload .env.production"
+        fi
+
+        if [ -f DEPLOYMENT.md ]; then
+          gh release upload ${{ needs.create-release.outputs.version }} DEPLOYMENT.md || echo "Failed to upload DEPLOYMENT.md"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
