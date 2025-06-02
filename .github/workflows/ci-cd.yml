@@ -115,6 +115,7 @@ jobs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
       image-name: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+      image-tag-single: ${{ steps.extract-single-tag.outputs.tag }}
     
     steps:
     - name: Checkout code
@@ -160,6 +161,19 @@ jobs:
           VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
 
+    - name: Extract single tag for output
+      id: extract-single-tag
+      run: |
+        # Extract the first tag for use in other jobs
+        TAGS="${{ steps.meta.outputs.tags }}"
+        if [ -n "$TAGS" ]; then
+          SINGLE_TAG=$(echo "$TAGS" | head -n1 | tr -d '\r\n' | xargs)
+        else
+          SINGLE_TAG="${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+        fi
+        echo "Extracted single tag: $SINGLE_TAG"
+        echo "tag=$SINGLE_TAG" >> $GITHUB_OUTPUT
+
   docker-security-scan:
     name: Docker Security Scan
     runs-on: ubuntu-latest
@@ -180,25 +194,29 @@ jobs:
         echo "Ref: ${{ github.ref }}"
         echo "================================"
 
-    - name: Extract single image tag for scanning
-      id: extract-tag
+    - name: Validate image tag for scanning
       run: |
-        # Extract the first tag from the multi-line tags output
-        FIRST_TAG=$(echo "${{ needs.build.outputs.image-tags }}" | head -n1)
-        echo "Selected image tag for scanning: $FIRST_TAG"
-        echo "image-tag=$FIRST_TAG" >> $GITHUB_OUTPUT
+        # Use the pre-extracted single tag from build job
+        IMAGE_TAG="${{ needs.build.outputs.image-tag-single }}"
+        IMAGE_NAME="${{ needs.build.outputs.image-name }}"
+
+        echo "Image tag for scanning: '$IMAGE_TAG'"
+        echo "Fallback image name: '$IMAGE_NAME'"
 
         # Validate that we have a valid image tag
-        if [ -z "$FIRST_TAG" ] || [ "$FIRST_TAG" = "." ]; then
-          echo "Error: Invalid or empty image tag: '$FIRST_TAG'"
-          echo "Available tags: ${{ needs.build.outputs.image-tags }}"
-          exit 1
+        if [ -z "$IMAGE_TAG" ] || [ "$IMAGE_TAG" = "." ]; then
+          echo "Error: Invalid or empty image tag: '$IMAGE_TAG'"
+          echo "Using fallback image name: '$IMAGE_NAME'"
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "Error: Both image tag and name are empty!"
+            exit 1
+          fi
         fi
 
     - name: Run Trivy vulnerability scanner on image
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ steps.extract-tag.outputs.image-tag }}
+        image-ref: ${{ needs.build.outputs.image-tag-single || needs.build.outputs.image-name }}
         format: 'sarif'
         output: 'docker-trivy-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
