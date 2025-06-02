@@ -1,4 +1,4 @@
-name: Dependency Update
+name: Dependency Security Check
 
 on:
   schedule:
@@ -6,16 +6,23 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:
 
+# Minimal permissions for security scanning
+permissions:
+  contents: read
+
 jobs:
-  update-dependencies:
-    name: Update Dependencies
+  check-dependencies:
+    name: Check Dependencies
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
         
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -78,46 +85,24 @@ jobs:
         # Run safety check and generate report
         safety check --json --output safety-report.json || echo '{"vulnerabilities": [], "scan_date": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "status": "completed"}' > safety-report.json
         
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'chore: update dependencies'
-        title: '🔄 Automated Dependency Update'
-        body: |
-          ## 🔄 自动依赖更新
-          
-          此PR由GitHub Actions自动创建，用于更新项目依赖包到最新版本。
-          
-          ### 📦 更新内容
-          - 更新了 `requirements.txt` 中的依赖包版本
-          - 运行了安全漏洞检查
-          
-          ### 🔍 检查项目
-          - [ ] 查看依赖包版本变更
-          - [ ] 运行测试确保兼容性
-          - [ ] 检查安全漏洞报告
-          - [ ] 验证应用功能正常
-          
-          ### 🚀 测试建议
-          ```bash
-          # 本地测试
-          pip install -r requirements.txt
-          python -m pytest tests/
-          
-          # Docker测试
-          docker-compose build
-          docker-compose up -d
-          curl http://localhost:8000/health
-          ```
-          
-          ### 📊 安全检查
-          安全漏洞检查报告已生成，请查看是否有需要关注的安全问题。
-          
-          ---
-          *此PR由 GitHub Actions 自动创建*
-        branch: dependency-update
-        delete-branch: true
+    - name: Check for available updates
+      run: |
+        echo "=== Dependency Update Check ==="
+        echo "Current requirements.txt:"
+        cat requirements.txt
+        echo ""
+        echo "Checking for available updates..."
+        pip list --outdated || echo "No outdated packages or pip list failed"
+        echo ""
+        echo "=== Security Check Completed ==="
+        echo "📊 Security report generated: safety-report.json"
+        echo "🔍 Manual review recommended for dependency updates"
+        echo "💡 To update dependencies manually:"
+        echo "   1. Review the security report"
+        echo "   2. Update requirements.in with new versions"
+        echo "   3. Run: pip-compile --upgrade requirements.in"
+        echo "   4. Test the application thoroughly"
+        echo "================================="
         
     - name: Verify security report file
       run: |
