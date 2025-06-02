@@ -178,7 +178,7 @@ jobs:
     name: Docker Security Scan
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && (success() || failure())
     permissions:
       contents: read
       security-events: write
@@ -194,53 +194,59 @@ jobs:
         echo "Ref: ${{ github.ref }}"
         echo "================================"
 
-    - name: Validate image tag for scanning
+    - name: Prepare image reference for scanning
+      id: prepare-image
       run: |
-        # Use the pre-extracted single tag from build job
-        IMAGE_TAG="${{ needs.build.outputs.image-tag-single }}"
-        IMAGE_NAME="${{ needs.build.outputs.image-name }}"
+        # Try to use outputs from build job first
+        BUILD_TAG="${{ needs.build.outputs.image-tag-single }}"
+        BUILD_NAME="${{ needs.build.outputs.image-name }}"
+        BUILD_TAGS="${{ needs.build.outputs.image-tags }}"
 
-        echo "Image tag for scanning: '$IMAGE_TAG'"
-        echo "Fallback image name: '$IMAGE_NAME'"
+        echo "Build outputs:"
+        echo "  Single tag: '$BUILD_TAG'"
+        echo "  Image name: '$BUILD_NAME'"
+        echo "  All tags: '$BUILD_TAGS'"
 
-        # Validate that we have a valid image tag
-        if [ -z "$IMAGE_TAG" ] || [ "$IMAGE_TAG" = "." ]; then
-          echo "Error: Invalid or empty image tag: '$IMAGE_TAG'"
-          echo "Using fallback image name: '$IMAGE_NAME'"
-          if [ -z "$IMAGE_NAME" ]; then
-            echo "Error: Both image tag and name are empty!"
-            exit 1
-          fi
+        # Determine the image reference to use
+        if [ -n "$BUILD_TAG" ] && [ "$BUILD_TAG" != "." ]; then
+          IMAGE_REF="$BUILD_TAG"
+          echo "Using build single tag: $IMAGE_REF"
+        elif [ -n "$BUILD_NAME" ] && [ "$BUILD_NAME" != "." ]; then
+          IMAGE_REF="$BUILD_NAME"
+          echo "Using build image name: $IMAGE_REF"
+        elif [ -n "$BUILD_TAGS" ]; then
+          IMAGE_REF=$(echo "$BUILD_TAGS" | head -n1 | tr -d '\r\n' | xargs)
+          echo "Using first tag from build tags: $IMAGE_REF"
+        else
+          # Fallback: construct image name manually
+          IMAGE_REF="${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          echo "Using fallback constructed name: $IMAGE_REF"
+        fi
+
+        echo "Final image reference: $IMAGE_REF"
+        echo "image-ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+
+        # Validate final image reference
+        if [ -z "$IMAGE_REF" ] || [ "$IMAGE_REF" = "." ]; then
+          echo "Error: Could not determine valid image reference!"
+          exit 1
         fi
 
     - name: Run Trivy vulnerability scanner on image
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ needs.build.outputs.image-tag-single || needs.build.outputs.image-name }}
+        image-ref: ${{ steps.prepare-image.outputs.image-ref }}
         format: 'sarif'
         output: 'docker-trivy-results.sarif'
         severity: 'CRITICAL,HIGH,MEDIUM'
         exit-code: '0'  # Don't fail the build on vulnerabilities
       continue-on-error: true  # Continue even if Trivy fails
 
-    - name: Fallback Trivy scan using image name
-      if: failure() && needs.build.outputs.image-name != ''
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ needs.build.outputs.image-name }}
-        format: 'sarif'
-        output: 'docker-trivy-results-fallback.sarif'
-        severity: 'CRITICAL,HIGH,MEDIUM'
-        exit-code: '0'
-      continue-on-error: true
-
     - name: Upload Docker scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && (hashFiles('docker-trivy-results.sarif') != '' || hashFiles('docker-trivy-results-fallback.sarif') != '')
+      if: always() && hashFiles('docker-trivy-results.sarif') != ''
       with:
-        sarif_file: |
-          docker-trivy-results.sarif
-          docker-trivy-results-fallback.sarif
+        sarif_file: docker-trivy-results.sarif
 
   deploy-staging:
     name: Deploy to Staging
