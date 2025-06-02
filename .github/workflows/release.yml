@@ -11,6 +11,11 @@ on:
         required: true
         type: string
 
+# Grant necessary permissions for creating releases
+permissions:
+  contents: write
+  packages: write
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: get_invoice_done
@@ -19,7 +24,9 @@ jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
@@ -71,7 +78,7 @@ jobs:
 
         ### 🐳 Docker镜像
         ```bash
-        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
+        docker pull kis2show/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
         ```
 
         ### 🚀 快速部署
@@ -138,8 +145,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
-          ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          ${{ env.REGISTRY }}/kis2show/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}
+          ${{ env.REGISTRY }}/kis2show/${{ env.IMAGE_NAME }}:latest
         labels: |
           org.opencontainers.image.title=${{ env.IMAGE_NAME }}
           org.opencontainers.image.description=Invoice OCR System
@@ -293,6 +300,6 @@ jobs:
     - name: Notify success
       run: |
         echo "🎉 Release ${{ needs.create-release.outputs.version }} created successfully!"
-        echo "🐳 Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}"
+        echo "🐳 Docker image: kis2show/${{ env.IMAGE_NAME }}:${{ needs.create-release.outputs.version }}"
         echo "📦 Release assets uploaded"
         echo "🚀 Ready for deployment!"
