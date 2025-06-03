@@ -120,6 +120,63 @@ geckodriver.log
 chromedriver.log
 selenium-debug.log
 webdriver/
+
+# 项目特定优化（减少镜像体积）
+*.sqlite
+*.db
+logs/
+temp/
+tmp/
+.env.local
+.env.development
+.env.test
+
+# 部署脚本（不需要在镜像中）
+deploy.sh
+deploy.bat
+*.deploy
+DEPLOYMENT.md
+PRODUCTION_*.md
+
+# CI/CD相关
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# 备份和临时文件
+*.bak
+*.backup
+*.old
+*.tmp
+*.temp
+
+# 大文件（减少构建上下文）
+*.mp4
+*.avi
+*.mov
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# 数据文件（运行时生成）
+data/
+backups/
+
+# 缓存目录
+.cache/
+.mypy_cache
+.pytest_cache
+
+# 其他不必要的文件
+.nyc_output
+.sass-cache
+*.pid
+*.seed
+*.pid.lock
+node_modules/
 drivers/
 
 # Mock and fixture data

@@ -1,0 +1,40 @@
+# 生产环境精简依赖
+# Production-optimized dependencies
+
+# Web框架 (核心)
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 数据库
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# 文件处理
+python-multipart==0.0.6
+aiofiles==23.2.0
+
+# 模板引擎
+jinja2==3.1.2
+
+# 配置管理
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# OCR和图像处理 (优化版本)
+easyocr==1.7.0
+opencv-python-headless==4.8.1.78  # headless版本，更小
+pillow==10.1.0
+
+# 数据处理 (精简版本)
+numpy==1.24.4
+pandas==2.1.4
+
+# PDF处理
+pymupdf==1.23.8
+
+# HTTP客户端
+requests==2.31.0
+
+# 生产环境优化
+gunicorn==21.2.0  # 生产级WSGI服务器
