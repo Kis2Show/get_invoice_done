@@ -1,0 +1,108 @@
+name: Build Ultra-Slim Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*-ultra'
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: kis2show/get_invoice_done
+
+jobs:
+  build-ultra-slim:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=tag,suffix=-ultra
+          type=raw,value=ultra-latest,enable={{is_default_branch}}
+
+    - name: Build and push ultra-slim image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.ultra-slim
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Analyze image size
+      run: |
+        echo "## 🔍 镜像体积分析" >> $GITHUB_STEP_SUMMARY
+        echo "| 镜像标签 | 体积 | 压缩后体积 |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------|------|-----------|" >> $GITHUB_STEP_SUMMARY
+        
+        for tag in ${{ steps.meta.outputs.tags }}; do
+          size=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "$tag" | awk '{print $2}' || echo "N/A")
+          echo "| $tag | $size | - |" >> $GITHUB_STEP_SUMMARY
+        done
+
+    - name: Test image functionality
+      run: |
+        echo "## 🧪 功能测试" >> $GITHUB_STEP_SUMMARY
+        
+        # 启动容器
+        docker run -d --name test-container -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ultra-latest
+        
+        # 等待启动
+        sleep 30
+        
+        # 测试健康检查
+        if curl -f http://localhost:8000/api/invoices/health; then
+          echo "✅ 健康检查通过" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ 健康检查失败" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # 测试API端点
+        if curl -f http://localhost:8000/api/invoices/; then
+          echo "✅ API端点正常" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ API端点异常" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # 清理
+        docker stop test-container
+        docker rm test-container
+
+    - name: Security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ultra-latest
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'

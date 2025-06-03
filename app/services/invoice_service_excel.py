@@ -5,7 +5,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from .ocr_service import OCRService
+from .ocr_service_lite import OCRServiceLite
 from .file_service import FileService
 from .excel_storage_service import ExcelStorageService
 
@@ -15,7 +15,7 @@ class InvoiceServiceExcel:
     """发票服务 - 使用Excel存储替代数据库"""
     
     def __init__(self, excel_file_path: str = "./data/invoices.xlsx"):
-        self.ocr_service = OCRService()
+        self.ocr_service = OCRServiceLite()
         self.file_service = FileService()
         self.storage = ExcelStorageService(excel_file_path)
     

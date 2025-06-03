@@ -1,0 +1,140 @@
+# 极致优化的Dockerfile - 目标<1GB
+# Ultra-slim Dockerfile targeting <1GB
+
+# 多阶段构建 - 构建阶段
+FROM python:3.9-alpine as builder
+
+# 构建参数
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+# 安装Alpine构建依赖（最小化）
+RUN apk add --no-cache \
+    build-base \
+    gcc \
+    g++ \
+    musl-dev \
+    linux-headers \
+    # 图像处理最小依赖
+    jpeg-dev \
+    libpng-dev \
+    freetype-dev \
+    zlib-dev \
+    # Python开发包
+    python3-dev \
+    # 基础工具
+    curl \
+    git
+
+# 设置工作目录
+WORKDIR /app
+
+# 创建超精简requirements
+RUN echo "fastapi==0.104.1" > requirements-ultra.txt && \
+    echo "uvicorn==0.24.0" >> requirements-ultra.txt && \
+    echo "python-multipart==0.0.6" >> requirements-ultra.txt && \
+    echo "aiofiles==23.2.0" >> requirements-ultra.txt && \
+    echo "jinja2==3.1.2" >> requirements-ultra.txt && \
+    echo "pydantic==2.5.0" >> requirements-ultra.txt && \
+    echo "pillow==10.1.0" >> requirements-ultra.txt && \
+    echo "numpy==1.24.4" >> requirements-ultra.txt && \
+    echo "pandas==2.1.4" >> requirements-ultra.txt && \
+    echo "openpyxl==3.1.2" >> requirements-ultra.txt && \
+    echo "requests==2.31.0" >> requirements-ultra.txt && \
+    echo "easyocr==1.7.0" >> requirements-ultra.txt && \
+    echo "pdfplumber==0.10.3" >> requirements-ultra.txt
+
+# 安装Python依赖并预下载模型
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --user -r requirements-ultra.txt && \
+    # 预下载EasyOCR模型
+    mkdir -p /tmp/easyocr_models && \
+    python -c "import easyocr; reader = easyocr.Reader(['ch_sim', 'en'], model_storage_directory='/tmp/easyocr_models', download_enabled=True)" && \
+    # 清理pip缓存和临时文件
+    pip cache purge && \
+    find /root/.local -name "*.pyc" -delete && \
+    find /root/.local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    # 清理不必要的包文件
+    find /root/.local -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# 生产阶段 - 使用更小的基础镜像
+FROM python:3.9-alpine as production
+
+# 复制构建参数
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+# 设置标签
+LABEL org.opencontainers.image.created=${BUILDTIME}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.revision=${REVISION}
+LABEL org.opencontainers.image.title="Invoice OCR System - Ultra Slim"
+LABEL org.opencontainers.image.description="极致优化的发票识别系统"
+LABEL org.opencontainers.image.source="https://github.com/Kis2Show/get_invoice_done"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# 安装运行时依赖（Alpine最小化）
+RUN apk add --no-cache \
+    # 基础运行时库
+    libstdc++ \
+    libgomp \
+    libgcc \
+    # 图像处理运行时
+    libjpeg-turbo \
+    libpng \
+    freetype \
+    zlib \
+    # 工具
+    curl \
+    ca-certificates && \
+    # 清理缓存
+    rm -rf /var/cache/apk/*
+
+# 创建非root用户（Alpine方式）
+RUN addgroup -g 1000 appuser && \
+    adduser -D -s /bin/sh -u 1000 -G appuser appuser
+
+# 设置工作目录
+WORKDIR /app
+
+# 从构建阶段复制Python包
+COPY --from=builder /root/.local /home/appuser/.local
+
+# 从构建阶段复制EasyOCR模型
+COPY --from=builder /tmp/easyocr_models /home/appuser/.EasyOCR
+
+# 复制应用代码（只复制必要文件）
+COPY --chown=appuser:appuser app/ ./app/
+COPY --chown=appuser:appuser run.py ./
+
+# 创建必要目录并设置权限
+RUN mkdir -p /app/data /app/invoices/pdf /app/invoices/imge /app/invoices/unrecognized /app/logs && \
+    chown -R appuser:appuser /app
+
+# 暴露端口
+EXPOSE 8000
+
+# 切换到非root用户
+USER appuser
+
+# 设置环境变量（优化版本）
+ENV PATH="/home/appuser/.local/bin:$PATH" \
+    PYTHONPATH=/app \
+    INVOICE_DIR=/app/invoices \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # EasyOCR优化设置
+    EASYOCR_MODULE_PATH=/home/appuser/.EasyOCR \
+    OMP_NUM_THREADS=1 \
+    # 内存优化
+    MALLOC_TRIM_THRESHOLD_=100000 \
+    MALLOC_MMAP_THRESHOLD_=100000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/invoices/health || exit 1
+
+# 启动命令
+CMD ["python", "run.py"]
