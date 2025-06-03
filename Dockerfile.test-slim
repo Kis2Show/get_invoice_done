@@ -1,0 +1,81 @@
+# 测试版本 - 简化的超精简Dockerfile
+# Test version - Simplified ultra-slim Dockerfile
+
+# 使用Alpine基础镜像
+FROM python:3.9-alpine
+
+# 构建参数
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+# 设置标签
+LABEL org.opencontainers.image.created=${BUILDTIME}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.revision=${REVISION}
+LABEL org.opencontainers.image.title="Invoice OCR System - Test Slim"
+LABEL org.opencontainers.image.description="测试版超精简发票识别系统"
+
+# 安装系统依赖
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    jpeg-dev \
+    libpng-dev \
+    freetype-dev \
+    curl \
+    ca-certificates
+
+# 创建用户
+RUN addgroup -g 1000 appuser && \
+    adduser -D -s /bin/sh -u 1000 -G appuser appuser
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装Python依赖（精简版本）
+RUN pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn==0.24.0 \
+    python-multipart==0.0.6 \
+    aiofiles==23.2.0 \
+    jinja2==3.1.2 \
+    pydantic==2.5.0 \
+    pillow==10.1.0 \
+    numpy==1.24.4 \
+    pandas==2.1.4 \
+    openpyxl==3.1.2 \
+    requests==2.31.0 \
+    easyocr==1.7.0 \
+    pdfplumber==0.10.3 && \
+    pip cache purge
+
+# 复制应用代码
+COPY --chown=appuser:appuser app/ ./app/
+COPY --chown=appuser:appuser run.py ./
+
+# 创建必要目录
+RUN mkdir -p /app/data /app/invoices/pdf /app/invoices/imge /app/invoices/unrecognized /app/logs && \
+    chown -R appuser:appuser /app
+
+# 暴露端口
+EXPOSE 8000
+
+# 切换用户
+USER appuser
+
+# 设置环境变量
+ENV PATH="/home/appuser/.local/bin:$PATH" \
+    PYTHONPATH=/app \
+    INVOICE_DIR=/app/invoices \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    OMP_NUM_THREADS=1
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/invoices/health || exit 1
+
+# 启动命令
+CMD ["python", "run.py"]

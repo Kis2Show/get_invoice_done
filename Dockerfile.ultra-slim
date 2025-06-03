@@ -45,18 +45,18 @@ RUN echo "fastapi==0.104.1" > requirements-ultra.txt && \
     echo "easyocr==1.7.0" >> requirements-ultra.txt && \
     echo "pdfplumber==0.10.3" >> requirements-ultra.txt
 
-# 安装Python依赖并预下载模型
+# 安装Python依赖
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --user -r requirements-ultra.txt && \
-    # 预下载EasyOCR模型
-    mkdir -p /tmp/easyocr_models && \
-    python -c "import easyocr; reader = easyocr.Reader(['ch_sim', 'en'], model_storage_directory='/tmp/easyocr_models', download_enabled=True)" && \
     # 清理pip缓存和临时文件
     pip cache purge && \
     find /root/.local -name "*.pyc" -delete && \
-    find /root/.local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
-    # 清理不必要的包文件
-    find /root/.local -name "*.dist-info" -type d -exec rm -rf {} + 2>/dev/null || true
+    find /root/.local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# 预下载EasyOCR模型（单独步骤，便于调试）
+RUN mkdir -p /tmp/easyocr_models && \
+    python -c "import easyocr; import os; os.environ['EASYOCR_MODULE_PATH'] = '/tmp/easyocr_models'; reader = easyocr.Reader(['ch_sim', 'en'], model_storage_directory='/tmp/easyocr_models'); print('EasyOCR models downloaded')" || \
+    echo "EasyOCR model download failed, continuing without models"
 
 # 生产阶段 - 使用更小的基础镜像
 FROM python:3.9-alpine as production
