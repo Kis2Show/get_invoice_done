@@ -1,28 +1,33 @@
 # 多阶段构建 - 构建阶段
-FROM python:3.9-alpine as builder
+FROM python:3.9-slim as builder
 
 # 构建参数
 ARG BUILDTIME
 ARG VERSION
 ARG REVISION
 
-# 安装构建依赖（Alpine包管理器）
-RUN apk add --no-cache \
-    build-base \
+# 安装构建依赖（精简版本）
+RUN apt-get update && apt-get install -y \
+    build-essential \
     gcc \
     g++ \
-    musl-dev \
-    linux-headers \
-    libffi-dev \
-    openssl-dev \
-    jpeg-dev \
-    zlib-dev \
-    freetype-dev \
-    lcms2-dev \
-    openjpeg-dev \
-    tiff-dev \
-    tk-dev \
-    tcl-dev
+    # 基础编译工具
+    cmake \
+    make \
+    pkg-config \
+    # 图像处理库
+    libfreetype6-dev \
+    libjpeg-dev \
+    libpng-dev \
+    # OpenCV最小依赖
+    libglib2.0-0 \
+    libgomp1 \
+    libgcc-s1 \
+    # 工具
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # 设置工作目录
 WORKDIR /app
@@ -36,8 +41,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     # 清理pip缓存
     pip cache purge
 
-# 生产阶段 - 使用更小的基础镜像
-FROM python:3.9-alpine as production
+# 生产阶段 - 使用slim基础镜像
+FROM python:3.9-slim as production
 
 # 复制构建参数到生产阶段
 ARG BUILDTIME
@@ -53,21 +58,22 @@ LABEL org.opencontainers.image.description="基于FastAPI和EasyOCR的发票识�
 LABEL org.opencontainers.image.source="https://github.com/Kis2Show/get_invoice_done"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# 安装运行时依赖（Alpine版本，更小）
-RUN apk add --no-cache \
-    libstdc++ \
-    libgomp \
-    libgcc \
-    libjpeg-turbo \
-    libpng \
-    freetype \
+# 安装运行时依赖（精简版本）
+RUN apt-get update && apt-get install -y \
+    # 最小运行时依赖
+    libgomp1 \
+    libgcc-s1 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libglib2.0-0 \
+    # 健康检查工具
     curl \
-    ca-certificates \
-    && rm -rf /var/cache/apk/*
+    # 清理缓存
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# 创建非root用户（Alpine方式）
-RUN addgroup -g 1000 appuser && \
-    adduser -D -s /bin/sh -u 1000 -G appuser appuser
+# 创建非root用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # 设置工作目录
 WORKDIR /app
@@ -96,7 +102,9 @@ ENV PATH="/home/appuser/.local/bin:$PATH" \
     INVOICE_DIR=/app/invoices \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    EASYOCR_MODULE_PATH=/home/appuser/.EasyOCR
+    # OCR优化设置
+    EASYOCR_MODULE_PATH=/home/appuser/.EasyOCR \
+    OMP_NUM_THREADS=1
 
 # 健康检查（使用更轻量的检查）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
