@@ -39,11 +39,29 @@ jobs:
           type=ref,event=tag,suffix=-micro
           type=raw,value=micro-latest,enable={{is_default_branch}}
 
-    - name: Build and push micro image
+    - name: Build and push micro image (Alpine)
       uses: docker/build-push-action@v5
+      continue-on-error: true
+      id: build-alpine
       with:
         context: .
         file: ./Dockerfile.micro
+        platforms: linux/amd64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}-alpine
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push minimal image (Debian)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.minimal
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
@@ -75,12 +93,12 @@ jobs:
         echo "- ✅ 保留pdfplumber (PDF处理)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ 使用CSV存储 (纯Python)" >> $GITHUB_STEP_SUMMARY
 
-    - name: Test micro image functionality
+    - name: Test minimal image functionality
       run: |
-        echo "## 🧪 微型镜像功能测试" >> $GITHUB_STEP_SUMMARY
-        
-        # 启动容器
-        docker run -d --name test-micro-container -p 8001:8000 -e STORAGE_TYPE=csv ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:micro-latest
+        echo "## 🧪 最小化镜像功能测试" >> $GITHUB_STEP_SUMMARY
+
+        # 启动容器（使用Debian版本）
+        docker run -d --name test-minimal-container -p 8001:8000 -e STORAGE_TYPE=csv ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:micro-latest
         
         # 等待启动
         sleep 30
@@ -115,8 +133,8 @@ jobs:
         fi
         
         # 清理
-        docker stop test-micro-container
-        docker rm test-micro-container
+        docker stop test-minimal-container
+        docker rm test-minimal-container
 
     - name: Compare with original image
       run: |
@@ -129,10 +147,10 @@ jobs:
         echo "|------|----------|----------|" >> $GITHUB_STEP_SUMMARY
         
         original_size=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "latest" | awk '{print $2}' || echo "N/A")
-        micro_size=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "micro-latest" | awk '{print $2}' || echo "N/A")
+        minimal_size=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "micro-latest" | awk '{print $2}' || echo "N/A")
         
         echo "| 原始版本 | $original_size | pandas+numpy+Excel |" >> $GITHUB_STEP_SUMMARY
-        echo "| 微型版本 | $micro_size | 纯Python+CSV |" >> $GITHUB_STEP_SUMMARY
+        echo "| 最小版本 | $minimal_size | 纯Python+CSV |" >> $GITHUB_STEP_SUMMARY
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🎉 优化成果" >> $GITHUB_STEP_SUMMARY

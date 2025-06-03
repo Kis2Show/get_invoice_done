@@ -1,7 +1,7 @@
-# 微型镜像 - 目标<500MB
-# Micro image targeting <500MB
+# 最小化镜像 - 使用Debian基础镜像确保兼容性
+# Minimal image using Debian base for compatibility
 
-FROM python:3.9-alpine
+FROM python:3.9-slim
 
 # 构建参数
 ARG BUILDTIME
@@ -12,50 +12,33 @@ ARG REVISION
 LABEL org.opencontainers.image.created=${BUILDTIME}
 LABEL org.opencontainers.image.version=${VERSION}
 LABEL org.opencontainers.image.revision=${REVISION}
-LABEL org.opencontainers.image.title="Invoice OCR System - Micro"
-LABEL org.opencontainers.image.description="微型发票识别系统 - 无pandas/numpy"
+LABEL org.opencontainers.image.title="Invoice OCR System - Minimal"
+LABEL org.opencontainers.image.description="最小化发票识别系统 - 无pandas/numpy"
 
-# 安装系统依赖（包含EasyOCR编译所需）
-RUN apk add --no-cache \
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
     # 基础编译工具
     gcc \
     g++ \
-    musl-dev \
-    linux-headers \
-    make \
-    cmake \
-    # Python开发包
-    python3-dev \
     # 图像处理库
-    jpeg-dev \
+    libjpeg-dev \
     libpng-dev \
-    freetype-dev \
-    zlib-dev \
-    # EasyOCR依赖
-    libffi-dev \
-    openssl-dev \
-    # 运行时库
-    libjpeg-turbo \
-    libpng \
-    freetype \
-    zlib \
+    libfreetype6-dev \
     # 工具
     curl \
-    ca-certificates \
-    git && \
-    rm -rf /var/cache/apk/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # 创建用户
-RUN addgroup -g 1000 appuser && \
-    adduser -D -s /bin/sh -u 1000 -G appuser appuser
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # 设置工作目录
 WORKDIR /app
 
-# 升级pip并分步安装依赖
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# 升级pip
+RUN pip install --no-cache-dir --upgrade pip
 
-# 安装基础依赖
+# 分步安装依赖（避免内存问题）
 RUN pip install --no-cache-dir \
     fastapi==0.104.1 \
     uvicorn==0.24.0 \
@@ -65,23 +48,21 @@ RUN pip install --no-cache-dir \
     pydantic==2.5.0 \
     requests==2.31.0
 
-# 安装图像处理依赖
 RUN pip install --no-cache-dir \
     pillow==10.1.0
 
-# 安装PDF处理依赖
 RUN pip install --no-cache-dir \
     pdfplumber==0.10.3
 
-# 安装OCR依赖（最后安装，因为最大）
 RUN pip install --no-cache-dir \
     easyocr==1.7.0
 
-# 清理pip缓存
+# 清理pip缓存和编译工具
 RUN pip cache purge && \
-    # 清理编译工具（保留运行时库）
-    apk del gcc g++ musl-dev linux-headers make cmake python3-dev \
-            jpeg-dev libpng-dev freetype-dev zlib-dev libffi-dev openssl-dev git
+    apt-get remove -y gcc g++ libjpeg-dev libpng-dev libfreetype6-dev && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # 复制应用代码
 COPY --chown=appuser:appuser app/ ./app/
@@ -98,13 +79,11 @@ EXPOSE 8000
 USER appuser
 
 # 设置环境变量
-ENV PATH="/home/appuser/.local/bin:$PATH" \
-    PYTHONPATH=/app \
+ENV PYTHONPATH=/app \
     INVOICE_DIR=/app/invoices \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     OMP_NUM_THREADS=1 \
-    # 使用CSV存储
     STORAGE_TYPE=csv
 
 # 健康检查
