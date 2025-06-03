@@ -6,8 +6,7 @@ import logging
 import os
 import json
 
-from app.database import create_tables
-from app.api.invoices import router as invoices_router
+from app.api.invoices_excel import router as invoices_router
 
 # 配置日志
 logging.basicConfig(
@@ -34,8 +33,7 @@ app = FastAPI(
     default_response_class=UnicodeJSONResponse
 )
 
-# 创建数据库表
-create_tables()
+# 无需创建数据库表，使用Excel存储
 
 # 注册API路由
 app.include_router(invoices_router)

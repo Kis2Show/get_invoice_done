@@ -14,14 +14,9 @@ try:
 except ImportError:
     TESSERACT_AVAILABLE = False
 
-try:
-    import fitz  # PyMuPDF
-    PYMUPDF_AVAILABLE = True
-except ImportError:
-    PYMUPDF_AVAILABLE = False
-
 from .invoice_recognition_engine import InvoiceRecognitionEngine
 from .error_handling_service import ErrorHandlingService
+from .pdf_processor import PDFProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +26,7 @@ class OCRService:
     def __init__(self):
         self.engine = InvoiceRecognitionEngine()
         self.error_handler = ErrorHandlingService()
+        self.pdf_processor = PDFProcessor()
         # 配置Tesseract路径（如果需要）
         # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
     
@@ -57,27 +53,9 @@ class OCRService:
             return ""
     
     def extract_text_from_pdf(self, pdf_path: str) -> str:
-        """从PDF中提取文本"""
-        if not PYMUPDF_AVAILABLE:
-            logger.warning("PyMuPDF不可用，无法处理PDF文件")
-            return ""
-
+        """从PDF中提取文本 - 使用轻量级PDF处理器"""
         try:
-            text = ""
-
-            # 使用PyMuPDF打开PDF
-            doc = fitz.open(pdf_path)
-
-            for page_num in range(len(doc)):
-                page = doc.load_page(page_num)
-                page_text = page.get_text()
-                text += page_text + "\n"
-
-            doc.close()
-
-            logger.info(f"从PDF {pdf_path} 提取文本成功，长度: {len(text)}")
-            return text
-
+            return self.pdf_processor.extract_text_from_pdf(pdf_path)
         except Exception as e:
             logger.error(f"从PDF {pdf_path} 提取文本失败: {e}")
             return ""

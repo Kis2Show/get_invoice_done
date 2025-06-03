@@ -12,32 +12,55 @@ def check_dependencies():
     try:
         import fastapi
         import easyocr
-        import fitz
         import cv2
         import PIL
-        print("✓ 所有依赖已安装")
+        import pandas
+        import openpyxl
+        print("✓ 所有核心依赖已安装")
+
+        # 检查PDF处理能力
+        pdf_available = False
+        try:
+            import fitz
+            pdf_available = True
+            print("✓ PyMuPDF可用")
+        except ImportError:
+            try:
+                import pdfplumber
+                pdf_available = True
+                print("✓ pdfplumber可用")
+            except ImportError:
+                print("⚠ PDF处理库不可用，将无法处理PDF文件")
+
         return True
     except ImportError as e:
         print(f"✗ 缺少依赖: {e}")
-        print("请运行: pip install -r requirements.txt")
+        print("请运行: pip install -r requirements-production.txt")
         return False
 
 def check_directories():
     """检查目录结构"""
     required_dirs = [
         "invoices",
-        "invoices/imge", 
+        "invoices/imge",
         "invoices/pdf",
         "app",
-        "app/static"
+        "app/static",
+        "data"  # Excel存储目录
     ]
-    
+
     for dir_path in required_dirs:
         if not os.path.exists(dir_path):
-            print(f"✗ 目录不存在: {dir_path}")
-            return False
-        print(f"✓ 目录存在: {dir_path}")
-    
+            print(f"⚠ 目录不存在，将自动创建: {dir_path}")
+            try:
+                os.makedirs(dir_path, exist_ok=True)
+                print(f"✓ 目录创建成功: {dir_path}")
+            except Exception as e:
+                print(f"✗ 目录创建失败: {dir_path}, 错误: {e}")
+                return False
+        else:
+            print(f"✓ 目录存在: {dir_path}")
+
     return True
 
 def count_invoice_files():
