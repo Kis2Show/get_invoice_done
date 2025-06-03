@@ -6,7 +6,13 @@ import logging
 import os
 import json
 
-from app.api.invoices_excel import router as invoices_router
+# 根据环境变量选择存储类型
+storage_type = os.getenv('STORAGE_TYPE', 'excel')
+
+if storage_type == 'csv':
+    from app.api.invoices_minimal import router as invoices_router
+else:
+    from app.api.invoices_excel import router as invoices_router
 
 # 配置日志
 logging.basicConfig(
@@ -33,7 +39,8 @@ app = FastAPI(
     default_response_class=UnicodeJSONResponse
 )
 
-# 无需创建数据库表，使用Excel存储
+# 无需创建数据库表，使用文件存储（Excel或CSV）
+# create_tables()  # 已禁用数据库
 
 # 注册API路由
 app.include_router(invoices_router)
