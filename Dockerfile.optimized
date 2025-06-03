@@ -1,0 +1,128 @@
+# 优化版Dockerfile - 基于Debian，稳定可靠
+# Optimized Dockerfile based on Debian for stability
+
+# 多阶段构建 - 构建阶段
+FROM python:3.9-slim as builder
+
+# 构建参数
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+# 安装构建依赖
+RUN apt-get update && apt-get install -y \
+    # 基础编译工具
+    gcc \
+    g++ \
+    make \
+    # 图像处理库开发包
+    libjpeg-dev \
+    libpng-dev \
+    libfreetype6-dev \
+    zlib1g-dev \
+    # 其他依赖
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 设置工作目录
+WORKDIR /app
+
+# 升级pip和安装构建工具
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 分步安装Python依赖（避免内存问题）
+# 1. 安装Web框架
+RUN pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn==0.24.0 \
+    python-multipart==0.0.6 \
+    aiofiles==23.2.0 \
+    jinja2==3.1.2 \
+    pydantic==2.5.0 \
+    requests==2.31.0
+
+# 2. 安装图像处理
+RUN pip install --no-cache-dir \
+    pillow==10.1.0
+
+# 3. 安装PDF处理
+RUN pip install --no-cache-dir \
+    pdfplumber==0.10.3
+
+# 4. 安装OCR（最大的包，单独安装）
+RUN pip install --no-cache-dir \
+    easyocr==1.7.0
+
+# 清理pip缓存
+RUN pip cache purge
+
+# 生产阶段 - 运行时镜像
+FROM python:3.9-slim as production
+
+# 复制构建参数
+ARG BUILDTIME
+ARG VERSION
+ARG REVISION
+
+# 设置标签
+LABEL org.opencontainers.image.created=${BUILDTIME}
+LABEL org.opencontainers.image.version=${VERSION}
+LABEL org.opencontainers.image.revision=${REVISION}
+LABEL org.opencontainers.image.title="Invoice OCR System - Optimized"
+LABEL org.opencontainers.image.description="优化版发票识别系统 - 无pandas/numpy"
+LABEL org.opencontainers.image.source="https://github.com/Kis2Show/get_invoice_done"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# 安装运行时依赖（只保留必要的）
+RUN apt-get update && apt-get install -y \
+    # 运行时库
+    libjpeg62-turbo \
+    libpng16-16 \
+    libfreetype6 \
+    zlib1g \
+    # 健康检查工具
+    curl \
+    # 清理
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 创建非root用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# 设置工作目录
+WORKDIR /app
+
+# 从构建阶段复制Python包
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# 复制应用代码
+COPY --chown=appuser:appuser app/ ./app/
+COPY --chown=appuser:appuser run.py ./
+
+# 创建必要目录并设置权限
+RUN mkdir -p /app/data /app/invoices/pdf /app/invoices/imge /app/invoices/unrecognized /app/logs && \
+    chown -R appuser:appuser /app
+
+# 暴露端口
+EXPOSE 8000
+
+# 切换到非root用户
+USER appuser
+
+# 设置环境变量
+ENV PYTHONPATH=/app \
+    INVOICE_DIR=/app/invoices \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    OMP_NUM_THREADS=1 \
+    # 使用CSV存储（无pandas依赖）
+    STORAGE_TYPE=csv
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/invoices/health || exit 1
+
+# 启动命令
+CMD ["python", "run.py"]

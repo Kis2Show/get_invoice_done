@@ -12,11 +12,21 @@ def check_dependencies():
     try:
         import fastapi
         import easyocr
-        import cv2
         import PIL
-        import pandas
-        import openpyxl
-        print("✓ 所有核心依赖已安装")
+        print("✓ 核心依赖已安装")
+
+        # 检查存储类型
+        storage_type = os.getenv('STORAGE_TYPE', 'excel')
+        if storage_type == 'csv':
+            print("✓ 使用CSV存储模式（无pandas依赖）")
+        else:
+            try:
+                import pandas
+                import openpyxl
+                print("✓ Excel存储依赖可用")
+            except ImportError:
+                print("⚠ Excel存储依赖不可用，将使用CSV模式")
+                os.environ['STORAGE_TYPE'] = 'csv'
 
         # 检查PDF处理能力
         pdf_available = False
@@ -32,35 +42,35 @@ def check_dependencies():
             except ImportError:
                 print("⚠ PDF处理库不可用，将无法处理PDF文件")
 
+        # 检查OpenCV（可选）
+        try:
+            import cv2
+            print("✓ OpenCV可用")
+        except ImportError:
+            print("ℹ OpenCV不可用，使用EasyOCR内置图像处理")
+
         return True
     except ImportError as e:
         print(f"✗ 缺少依赖: {e}")
-        print("请运行: pip install -r requirements-production.txt")
+        print("请运行: pip install -r requirements-micro.txt")
         return False
 
 def check_directories():
     """检查目录结构"""
     required_dirs = [
         "invoices",
-        "invoices/imge",
+        "invoices/imge", 
         "invoices/pdf",
         "app",
-        "app/static",
-        "data"  # Excel存储目录
+        "app/static"
     ]
-
+    
     for dir_path in required_dirs:
         if not os.path.exists(dir_path):
-            print(f"⚠ 目录不存在，将自动创建: {dir_path}")
-            try:
-                os.makedirs(dir_path, exist_ok=True)
-                print(f"✓ 目录创建成功: {dir_path}")
-            except Exception as e:
-                print(f"✗ 目录创建失败: {dir_path}, 错误: {e}")
-                return False
-        else:
-            print(f"✓ 目录存在: {dir_path}")
-
+            print(f"✗ 目录不存在: {dir_path}")
+            return False
+        print(f"✓ 目录存在: {dir_path}")
+    
     return True
 
 def count_invoice_files():
